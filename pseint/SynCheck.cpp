@@ -467,6 +467,141 @@ bool SirveParaReferencia(const string &s) {
 // ********************* Checkear la Correcta Sintaxis del Archivo **************************
 //-------------------------------------------------------------------------------------------
 
+// ============================================================
+// PATCH CATEDRA UTN - Sinonimos de sintaxis
+// ------------------------------------------------------------
+// Traduce, linea por linea y ANTES del analisis normal, la
+// sintaxis de la catedra de Algoritmos y Estructuras de Datos
+// a la sintaxis nativa de PSeInt (que ya soporta el analizador
+// y el evaluador sin ningun otro cambio). No reemplaza al
+// analizador: solo reescribe el texto de la instruccion a su
+// equivalente ya soportado, ANTES de que se calculen
+// full_cadena/first_word.
+//
+// Cubre:
+//   PROGRAMA nombre        -> ALGORITMO nombre
+//   FINPROGRAMA             -> FINALGORITMO
+//   INICIO                  -> (no-op, se transforma en linea vacia)
+//   VAR n1,n2: TIPO          -> Definir n1,n2 Como Tipo;
+//   VARIAR c DE a HASTA b [SALTO p]  -> Para c<-a Hasta b [Con Paso p];
+//   FINVARIAR                -> FinPara
+//
+// NO cubre (requieren decision de catedra, ver README del patch):
+//   CONST (PSeInt no tiene constantes reales)
+//   CAR vs CADENA (PSeInt tiene un unico tipo Caracter/string;
+//                  CAR se mapea a Caracter, se pierde la
+//                  distincion caracter-unico vs cadena)
+// ============================================================
+// Reemplaza todas las apariciones de "from" por "to" dentro de s.
+static void ReemplazarTodos(string &s, const string &from, const string &to) {
+	size_t pos = 0;
+	while ((pos = s.find(from, pos)) != string::npos) {
+		s.replace(pos, from.size(), to);
+		pos += to.size();
+	}
+}
+
+static void AplicarSinonimosCatedra(string &cadena) {
+
+	// Los operadores logicos de la catedra usan corchetes:
+	// [Y] [O] [NO]. PSeInt ya entiende "Y"/"O"/"NO" sueltos si
+	// el perfil tiene word_operators=1, asi que solo hace falta
+	// sacar los corchetes (puede aparecer en cualquier parte de
+	// la linea, no solo al principio).
+	ReemplazarTodos(cadena, "[Y]", " Y ");
+	ReemplazarTodos(cadena, "[O]", " O ");
+	ReemplazarTodos(cadena, "[NO]", " NO ");
+
+	// Trabajar sobre una copia sin espacios iniciales para
+	// poder comparar prefijos comodamente.
+	string t = cadena;
+	int p = 0;
+	while (p < (int)t.size() && t[p] == ' ') p++;
+	t = t.substr(p);
+
+	// Quitar ';' y espacios finales, para detectar el largo
+	// "logico" de la instruccion sin repetir codigo.
+	string t_sin_pyc = t;
+	while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' '))
+		t_sin_pyc.erase(t_sin_pyc.size()-1);
+
+	// --- PROGRAMA nombre  ->  ALGORITMO nombre ---
+	if (t == "PROGRAMA" || LeftCompare(t, "PROGRAMA ")) {
+		cadena = "ALGORITMO" + t.substr(9);
+		return;
+	}
+
+	// --- FINPROGRAMA  ->  FINALGORITMO ---
+	if (t_sin_pyc == "FINPROGRAMA") {
+		cadena = "FINALGORITMO;";
+		return;
+	}
+
+	// --- INICIO [PROGRAMA]  ->  no-op (linea vacia) ---
+	// PSeInt no tiene un marcador separado de "inicio del
+	// cuerpo": el cuerpo empieza apenas termina el encabezado
+	// ALGORITMO. INICIO se descarta sin generar instruccion.
+	if (t_sin_pyc == "INICIO" || LeftCompare(t_sin_pyc, "INICIO PROGRAMA") || LeftCompare(t_sin_pyc, "INICIO ")) {
+		cadena = "";
+		return;
+	}
+
+	// --- VAR n1[,n2,...]: TIPO  ->  Definir n1[,n2] Como Tipo; ---
+	if (LeftCompare(t, "VAR ")) {
+		int dospuntos = (int)t_sin_pyc.find_last_of(':');
+		if (dospuntos != -1) {
+			string nombres = t_sin_pyc.substr(4, dospuntos - 4);
+			string tipo = t_sin_pyc.substr(dospuntos + 1);
+			int q = 0;
+			while (q < (int)tipo.size() && tipo[q] == ' ') q++;
+			tipo = tipo.substr(q);
+			while (!tipo.empty() && tipo[tipo.size()-1] == ' ') tipo.erase(tipo.size()-1);
+
+			string tipo_final;
+			if (tipo == "ENTERO") tipo_final = "Entero";
+			else if (tipo == "REAL") tipo_final = "Real";
+			else if (tipo == "CADENA") tipo_final = "Caracter";
+			else if (tipo == "LOGICO") tipo_final = "Logico";
+			else if (tipo == "CAR") tipo_final = "Caracter"; // ver caveat CAR/CADENA
+			else tipo_final = tipo; // tipo de usuario (enum/registro): sin tocar
+
+			cadena = "Definir " + nombres + " Como " + tipo_final + ";";
+			return;
+		}
+	}
+
+	// --- VARIAR c DE a HASTA b [SALTO p]  ->  Para c<-a Hasta b [Con Paso p]; ---
+	if (LeftCompare(t, "VARIAR ")) {
+		string resto = t_sin_pyc.substr(7);
+		int p_de = (int)resto.find(" DE ");
+		int p_hasta = (int)resto.find(" HASTA ");
+		if (p_de != -1 && p_hasta != -1 && p_hasta > p_de) {
+			string var = resto.substr(0, p_de);
+			string ini = resto.substr(p_de + 4, p_hasta - (p_de + 4));
+			string resto2 = resto.substr(p_hasta + 7);
+			int p_salto = (int)resto2.find(" SALTO ");
+			string fin, paso;
+			if (p_salto != -1) {
+				fin = resto2.substr(0, p_salto);
+				paso = resto2.substr(p_salto + 7);
+			} else {
+				fin = resto2;
+				paso = "";
+			}
+			cadena = "PARA " + var + "<-" + ini + " HASTA " + fin;
+			if (!paso.empty()) cadena += " CON PASO " + paso;
+			cadena += ";";
+			return;
+		}
+	}
+
+	// --- FINVARIAR  ->  FINPARA ---
+	if (t_sin_pyc == "FINVARIAR") {
+		cadena = "FINPARA;";
+		return;
+	}
+}
+
 int SynCheck(int linea_from, int linea_to) {
 	
 	programa.SetRefPoint(linea_to);
@@ -510,6 +645,10 @@ int SynCheck(int linea_from, int linea_to) {
 			if (len>2 && cadena[len-1]==';' && cadena[len-2]!=' ') { cadena.insert(len-1," "); len++; }
 			else if (len>1 && cadena[len-1]!=';') { cadena+=" "; len++; } 
 			
+			// PATCH CATEDRA UTN: traducir sinonimos de sintaxis de la
+			// catedra a sintaxis nativa de PSeInt antes de seguir.
+			AplicarSinonimosCatedra(cadena);
+
 			// extraer la primer palabra clave para ver qué instrucción es
 			string full_cadena=cadena, first_word = FirstWord(cadena);
 			cadena.erase(0,first_word.size()); FixAcentos(first_word);
