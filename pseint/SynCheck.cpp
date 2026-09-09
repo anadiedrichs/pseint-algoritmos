@@ -527,7 +527,7 @@ static void AplicarSinonimosCatedra(string &cadena) {
 
 	// --- PROGRAMA nombre  ->  ALGORITMO nombre ---
 	if (t == "PROGRAMA" || LeftCompare(t, "PROGRAMA ")) {
-		cadena = "ALGORITMO" + t.substr(9);
+		cadena = "ALGORITMO " + t.substr(9);
 		return;
 	}
 
@@ -558,14 +558,14 @@ static void AplicarSinonimosCatedra(string &cadena) {
 			while (!tipo.empty() && tipo[tipo.size()-1] == ' ') tipo.erase(tipo.size()-1);
 
 			string tipo_final;
-			if (tipo == "ENTERO") tipo_final = "Entero";
-			else if (tipo == "REAL") tipo_final = "Real";
-			else if (tipo == "CADENA") tipo_final = "Caracter";
-			else if (tipo == "LOGICO") tipo_final = "Logico";
-			else if (tipo == "CAR") tipo_final = "Caracter"; // ver caveat CAR/CADENA
+			if (tipo == "ENTERO") tipo_final = "ENTERO";
+			else if (tipo == "REAL") tipo_final = "REAL";
+			else if (tipo == "CADENA") tipo_final = "CARACTER";
+			else if (tipo == "LOGICO") tipo_final = "LOGICO";
+			else if (tipo == "CAR") tipo_final = "CARACTER"; // ver caveat CAR/CADENA
 			else tipo_final = tipo; // tipo de usuario (enum/registro): sin tocar
 
-			cadena = "Definir " + nombres + " Como " + tipo_final + ";";
+			cadena = "DEFINIR " + nombres + " COMO " + tipo_final + ";";
 			return;
 		}
 	}
