@@ -1,4 +1,4 @@
-PROGRAMA suma
+PROGRAMA sumar
 VAR suma, contador: ENTERO
 INICIO
 	suma = 0
