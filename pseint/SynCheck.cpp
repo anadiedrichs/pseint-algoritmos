@@ -501,6 +501,29 @@ static void ReemplazarTodos(string &s, const string &from, const string &to) {
 	}
 }
 
+// Devuelve la posicion del ')' que cierra el '(' que esta en
+// pos_apertura, saltando el contenido de cadenas literales entre
+// comillas dobles (para no confundirse con parentesis que aparezcan
+// dentro de un string). Devuelve -1 si no encuentra el cierre.
+static int EncontrarCierre(const string &s, int pos_apertura) {
+	int depth = 0;
+	bool in_str = false;
+	for (int i = pos_apertura; i < (int)s.size(); i++) {
+		char c = s[i];
+		if (in_str) {
+			if (c == '"') in_str = false;
+		} else if (c == '"') {
+			in_str = true;
+		} else if (c == '(') {
+			depth++;
+		} else if (c == ')') {
+			depth--;
+			if (depth == 0) return i;
+		}
+	}
+	return -1;
+}
+
 static void AplicarSinonimosCatedra(string &cadena) {
 
 	// Los operadores logicos de la catedra usan corchetes:
@@ -512,18 +535,48 @@ static void AplicarSinonimosCatedra(string &cadena) {
 	ReemplazarTodos(cadena, "[O]", " O ");
 	ReemplazarTodos(cadena, "[NO]", " NO ");
 
-	// Trabajar sobre una copia sin espacios iniciales para
-	// poder comparar prefijos comodamente.
+	// Trabajar sobre una copia sin espacios/tabs iniciales para
+	// poder comparar prefijos comodamente. Ojo: esta funcion corre
+	// ANTES de SynCheckAux1, asi que los tabs todavia NO estan
+	// convertidos a espacios - hay que contemplarlos aca.
 	string t = cadena;
 	int p = 0;
-	while (p < (int)t.size() && t[p] == ' ') p++;
+	while (p < (int)t.size() && (t[p] == ' ' || t[p] == '\t')) p++;
 	t = t.substr(p);
 
-	// Quitar ';' y espacios finales, para detectar el largo
+	// Quitar ';' y espacios/tabs finales, para detectar el largo
 	// "logico" de la instruccion sin repetir codigo.
 	string t_sin_pyc = t;
-	while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' '))
+	while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' ' || t_sin_pyc[t_sin_pyc.size()-1] == '\t'))
 		t_sin_pyc.erase(t_sin_pyc.size()-1);
+
+	// --- LEER(...)  ->  LEER ...   /   ESCRIBIR(...)  ->  ESCRIBIR ... ---
+	// La catedra escribe LEER/ESCRIBIR como llamada a funcion, con
+	// parentesis envolviendo los argumentos (con o sin espacio antes del parentesis);
+	// PSeInt nativo espera los argumentos sueltos, separados por coma.
+	{
+		string kw;
+		int pos_par = -1;
+		if (LeftCompare(t, "LEER(") || LeftCompare(t, "LEER (") || LeftCompare(t, "LEER\t(")) {
+			kw = "LEER";
+			pos_par = (int)t.find('(');
+		} else if (LeftCompare(t, "ESCRIBIR(") || LeftCompare(t, "ESCRIBIR (") || LeftCompare(t, "ESCRIBIR\t(")) {
+			kw = "ESCRIBIR";
+			pos_par = (int)t.find('(');
+		}
+		if (!kw.empty() && pos_par != -1) {
+			int cierre = EncontrarCierre(t, pos_par);
+			if (cierre != -1) {
+				string resto = t.substr(cierre + 1);
+				while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
+				if (resto.empty() || resto == ";") {
+					string args = t.substr(pos_par + 1, cierre - pos_par - 1);
+					cadena = kw + " " + args + ";";
+					return;
+				}
+			}
+		}
+	}
 
 	// --- PROGRAMA nombre  ->  ALGORITMO nombre ---
 	if (t == "PROGRAMA" || LeftCompare(t, "PROGRAMA ")) {
@@ -533,7 +586,7 @@ static void AplicarSinonimosCatedra(string &cadena) {
 
 	// --- FINPROGRAMA  ->  FINALGORITMO ---
 	if (t_sin_pyc == "FINPROGRAMA") {
-		cadena = "FINALGORITMO;";
+		cadena = "FINALGORITMO";
 		return;
 	}
 
@@ -590,7 +643,7 @@ static void AplicarSinonimosCatedra(string &cadena) {
 			}
 			cadena = "PARA " + var + "<-" + ini + " HASTA " + fin;
 			if (!paso.empty()) cadena += " CON PASO " + paso;
-			cadena += ";";
+			cadena += " HACER";
 			return;
 		}
 	}
@@ -598,6 +651,72 @@ static void AplicarSinonimosCatedra(string &cadena) {
 	// --- FINVARIAR  ->  FINPARA ---
 	if (t_sin_pyc == "FINVARIAR") {
 		cadena = "FINPARA;";
+		return;
+	}
+
+	// --- HASTA <condicion>  (cierre de REPETIR)  ->  HASTA QUE <condicion> ---
+	// OJO: esto es solo para el HASTA que cierra un REPETIR (la linea
+	// entera empieza con HASTA). Soporta "HASTA (cond)" y "HASTA(cond)".
+	if (LeftCompare(t, "HASTA(") || LeftCompare(t, "HASTA\t(") || (LeftCompare(t, "HASTA ") && !LeftCompare(t, "HASTA QUE "))) {
+		int pos_cond = 5;
+		while (pos_cond < (int)t.size() && (t[pos_cond] == ' ' || t[pos_cond] == '\t')) pos_cond++;
+		cadena = "HASTA QUE " + t.substr(pos_cond);
+		return;
+	}
+
+	// --- SEGÚN CASO (var) [HACER]  ->  SEGUN var HACER ---
+	// La catedra permite: SEGUN CASO (var) HACER, SEGÚN CASO var HACER,
+	// SEGUN (var) HACER, SEGUN var HACER, con o sin tilde, con o sin parentesis.
+	{
+		bool es_segun = false;
+		int offset_segun = 0;
+		if (LeftCompare(t, "SEG\xDAN ") || LeftCompare(t, "SEG\xC3\x9AN ")) {
+			es_segun = true;
+			offset_segun = LeftCompare(t, "SEG\xDAN ") ? 6 : 7;
+		} else if (LeftCompare(t, "SEGUN ")) {
+			es_segun = true;
+			offset_segun = 6;
+		}
+		if (es_segun) {
+			string resto = t_sin_pyc.substr(offset_segun);
+			while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
+			if (LeftCompare(resto, "CASO ") || LeftCompare(resto, "CASO\t")) {
+				resto = resto.substr(4);
+				while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
+			}
+			// Quitar HACER final si ya estaba presente
+			if (resto.size() >= 6 && resto.substr(resto.size() - 6) == " HACER") {
+				resto.erase(resto.size() - 6);
+			} else if (resto.size() >= 6 && resto.substr(resto.size() - 6) == "\tHACER") {
+				resto.erase(resto.size() - 6);
+			}
+			while (!resto.empty() && (resto[resto.size() - 1] == ' ' || resto[resto.size() - 1] == '\t'))
+				resto.erase(resto.size() - 1);
+			// Quitar parentesis exteriores si envuelven toda la variable/expresion
+			if (!resto.empty() && resto[0] == '(') {
+				int cierre = EncontrarCierre(resto, 0);
+				if (cierre == (int)resto.size() - 1) {
+					resto = resto.substr(1, resto.size() - 2);
+					while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
+					while (!resto.empty() && (resto[resto.size() - 1] == ' ' || resto[resto.size() - 1] == '\t')) resto.erase(resto.size() - 1);
+				}
+			}
+			cadena = "SEGUN " + resto + " HACER";
+			return;
+		}
+	}
+
+	// --- DE OTRO MODO [:]  ->  DE OTRO MODO: ---
+	if (t_sin_pyc == "DE OTRO MODO" || t_sin_pyc == "DE OTRO MODO:") {
+		cadena = "DE OTRO MODO:";
+		return;
+	}
+
+	// --- FINSEGUN  ->  FINSEGUN; ---
+	if (t_sin_pyc == "FINSEGUN" || t_sin_pyc == "FIN SEGUN" ||
+		t_sin_pyc == "FINSEG\xDAN" || t_sin_pyc == "FIN SEG\xDAN" ||
+		t_sin_pyc == "FINSEG\xC3\x9AN" || t_sin_pyc == "FIN SEG\xC3\x9AN") {
+		cadena = "FINSEGUN;";
 		return;
 	}
 }
@@ -645,9 +764,9 @@ int SynCheck(int linea_from, int linea_to) {
 			if (len>2 && cadena[len-1]==';' && cadena[len-2]!=' ') { cadena.insert(len-1," "); len++; }
 			else if (len>1 && cadena[len-1]!=';') { cadena+=" "; len++; } 
 			
-			// PATCH CATEDRA UTN: traducir sinonimos de sintaxis de la
-			// catedra a sintaxis nativa de PSeInt antes de seguir.
-			AplicarSinonimosCatedra(cadena);
+			// (la traduccion de sinonimos de catedra ahora se hace mas
+			// temprano, en SynCheck(), antes de SynCheckAux1 y del
+			// preregistro de procesos/subprocesos - ver mas abajo)
 
 			// extraer la primer palabra clave para ver qué instrucción es
 			string full_cadena=cadena, first_word = FirstWord(cadena);
@@ -1338,9 +1457,14 @@ int SynCheck(int linea_from, int linea_to) {
 				cadena[cadena.size()-1]=',';
 				int i=0;
 				while ((p=PSeudoFind(cadena,',',i))!=-1) {
-					DataValue res = EvaluarSC(cadena.substr(i,p-i),lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica);
-					if (res.IsOk() && !res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) {
-						SynError (203,"Las opciones deben ser de tipo numérico."); errores++;
+					string opt_expr = cadena.substr(i,p-i);
+					DataValue res = EvaluarSC(opt_expr,lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica);
+					if (res.IsOk()) {
+						if (!res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) {
+							SynError (203,"Las opciones deben ser de tipo numérico."); errores++;
+						} else if (opt_expr.find('.') != string::npos || (memoria->Existe(opt_expr) && memoria->LeerTipo(opt_expr).cb_num && !memoria->LeerTipo(opt_expr).rounded)) {
+							SynError (203,"Las opciones deben ser de tipo Entero o Caracter."); errores++;
+						}
 					}
 					i=p+1;
 				}
@@ -1457,7 +1581,12 @@ int SynCheck(int linea_from, int linea_to) {
 						}
 						DataValue res;
 						if (Lerrores==errores) res = EvaluarSC(str,lang[LS_INTEGER_ONLY_SWITCH]?vt_numerica:vt_caracter_o_numerica);
-						if (res.IsOk()&&!res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) { SynError (100,"No coinciden los tipos."); errores++; }
+						if (res.IsOk()) {
+							if (!res.CanBeReal()&&lang[LS_INTEGER_ONLY_SWITCH]) { SynError (100,"No coinciden los tipos."); errores++; }
+							else if ((memoria->Existe(str) && memoria->LeerTipo(str).cb_num && !memoria->LeerTipo(str).rounded) || str.find('.') != string::npos) {
+								SynError (100,"La variable de control debe ser de tipo Entero o Caracter."); errores++;
+							}
+						}
 					}
 				}
 			}
@@ -1624,6 +1753,7 @@ int SynCheck() {
 	
 	// pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y trimear
 	for(int i=0;i<programa.GetSize();i++) {
+		AplicarSinonimosCatedra(programa[i].instruccion);
 		string comment = SynCheckAux1(programa[i].instruccion);
 		if (preserve_comments && comment.size()) { programa.Insert(i,comment); i++; }
 	}
