@@ -577,6 +577,10 @@ void Ejecutar(int LineStart, int LineEnd) {
 					else
 						ExeError(206,"La expresión del SEGUN debe ser numerica.");
 				}
+				if ((memoria->Existe(expr_control) && memoria->LeerTipo(expr_control).cb_num && !memoria->LeerTipo(expr_control).rounded) ||
+					(val_control.CanBeReal() && val_control.GetAsReal() != (double)val_control.GetAsInt())) {
+					ExeError(127,"La variable de control debe ser de tipo Entero o Caracter.");
+				}
 				_sub(line,string("El resultado es: ")+val_control.GetForUser());
 				int line_finsegun=line+1, anidamiento=0; // Buscar hasta donde llega el bucle
 				while (!(anidamiento==0 && LeftCompare(programa[line_finsegun],"FINSEGUN"))) {
@@ -608,6 +612,9 @@ void Ejecutar(int LineStart, int LineEnd) {
 								_sub(line_opcion,string("Se evalúa la opcion: ")+expr_opcion);
 								DataValue val_opcion = Evaluar(expr_opcion,tipo_master);
 								if (!val_opcion.CanBeReal()&&(lang[LS_INTEGER_ONLY_SWITCH]||!val_opcion.CanBeString())) ExeError(127,"No coinciden los tipos.");
+								if (val_opcion.CanBeReal() && (expr_opcion.find('.') != string::npos || val_opcion.GetAsReal() != (double)val_opcion.GetAsInt())) {
+									ExeError(127,"Las opciones deben ser de tipo Entero o Caracter.");
+								}
 								// evaluar la condicion (se pone como estaban y no los resultados de la evaluaciones de antes porque sino las variables indefinida pueden no tomar el valor que corresponde
 								if (Evaluar(string("(")+expr_control+")=("+expr_opcion+")").GetAsBool()) {
 									_sub(line_opcion,"El resultado coincide, se ingresará en esta opción.");
