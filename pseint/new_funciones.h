@@ -22,29 +22,31 @@ struct Funcion {
 	DataValue (*func)(DataValue *args); // NULL si es de las definidas por el usuario como subproceso
 	int line_start; // linea del pseudocodigo parseado donde comienza la funcion (solo para las definidas por el usuario)
 	int userline_start, userline_end; // linea del pseudocodigo original donde empieza y termina la funcion (para pasarsela a la lista de variables del editor)
+	bool is_catedra_func;
+	bool retorno_asignado;
 	void AddArg(string arg, PASAJE por=PP_DESCONOCIDO) { nombres.push_back(arg); tipos.push_back(vt_desconocido); pasajes.push_back(por); cant_arg++; }
 	void SetLastPasaje(PASAJE por) { pasajes[pasajes.size()-1]=por; } // para modificar el tipo de pasaje del último argumento insertado con AddArg
 	Memoria *memoria; // instancia de la clase memoria que se usa para el analisis sintático
-	Funcion(int line):func(NULL),line_start(line),userline_start(-1),userline_end(-1) { 
+	Funcion(int line):func(NULL),line_start(line),userline_start(-1),userline_end(-1),is_catedra_func(false),retorno_asignado(false) { 
 		AddArg(""); cant_arg=0; memoria=NULL;
 	}
 	// cppcheck-suppress uninitMemberVar
-	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args)):cant_arg(0),func(af) { 
+	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args)):cant_arg(0),func(af),is_catedra_func(false),retorno_asignado(false) { 
 		tipos.resize(cant_arg+1); tipos[0]=tipo_ret;
 		pasajes.resize(cant_arg+1); pasajes[0]=PP_DESCONOCIDO;
 	}
 	// cppcheck-suppress uninitMemberVar
-	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args), tipo_var tipo_arg_1):cant_arg(1),func(af) { 
+	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args), tipo_var tipo_arg_1):cant_arg(1),func(af),is_catedra_func(false),retorno_asignado(false) { 
 		tipos.resize(cant_arg+1); tipos[0]=tipo_ret; tipos[1]=tipo_arg_1;
 		pasajes.resize(cant_arg+1); pasajes[0]=pasajes[1]=PP_DESCONOCIDO;
 	}
 	// cppcheck-suppress uninitMemberVar
-	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args), tipo_var tipo_arg_1, tipo_var tipo_arg_2):cant_arg(2),func(af) { 
+	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args), tipo_var tipo_arg_1, tipo_var tipo_arg_2):cant_arg(2),func(af),is_catedra_func(false),retorno_asignado(false) { 
 		tipos.resize(cant_arg+1); tipos[0]=tipo_ret; tipos[1]=tipo_arg_1; tipos[2]=tipo_arg_2;
 		pasajes.resize(cant_arg+1); pasajes[0]=pasajes[1]=pasajes[2]=PP_DESCONOCIDO;
 	}
 	// cppcheck-suppress uninitMemberVar
-	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args), tipo_var tipo_arg_1, tipo_var tipo_arg_2, tipo_var tipo_arg_3):cant_arg(3),func(af) { 
+	Funcion(tipo_var tipo_ret, DataValue (*af)(DataValue *args), tipo_var tipo_arg_1, tipo_var tipo_arg_2, tipo_var tipo_arg_3):cant_arg(3),func(af),is_catedra_func(false),retorno_asignado(false) { 
 		tipos.resize(cant_arg+1); tipos[0]=tipo_ret; tipos[1]=tipo_arg_1; tipos[2]=tipo_arg_2; tipos[3]=tipo_arg_3;
 		pasajes.resize(cant_arg+1); pasajes[0]=pasajes[1]=pasajes[2]=pasajes[3]=PP_DESCONOCIDO;
 	}
