@@ -1,6 +1,8 @@
 #include "SynCheck.h"
 #include "global.h"
 #include <deque>
+#include <set>
+#include <map>
 #include <string>
 #include "utils.h"
 #include "new_evaluar.h"
@@ -524,6 +526,727 @@ static int EncontrarCierre(const string &s, int pos_apertura) {
 	return -1;
 }
 
+static bool LeftCompareNC(const string &a, const string &b) {
+	if (a.size() < b.size()) return false;
+	for (size_t i = 0; i < b.size(); i++) {
+		if (toupper((unsigned char)a[i]) != toupper((unsigned char)b[i])) return false;
+	}
+	return true;
+}
+
+static bool EqualsNC(const string &a, const string &b) {
+	if (a.size() != b.size()) return false;
+	for (size_t i = 0; i < a.size(); i++) {
+		if (toupper((unsigned char)a[i]) != toupper((unsigned char)b[i])) return false;
+	}
+	return true;
+}
+
+static string NormalizarTipoCatedra(string tipo) {
+	while (!tipo.empty() && (tipo[0] == ' ' || tipo[0] == '\t')) tipo.erase(0, 1);
+	while (!tipo.empty() && (tipo[tipo.size()-1] == ' ' || tipo[tipo.size()-1] == '\t' || tipo[tipo.size()-1] == ';')) tipo.erase(tipo.size()-1);
+	string u = ToUpper(tipo);
+	if (u == "ENTERO") return "ENTERO";
+	if (u == "REAL") return "REAL";
+	if (u == "CADENA") return "CARACTER";
+	if (u == "CAR") return "CARACTER";
+	if (u == "LOGICO") return "LOGICO";
+	return tipo;
+}
+
+static void NormalizarParametros(string &args) {
+	if (args.empty()) return;
+	size_t p_ini = args.find('(');
+	size_t p_fin = args.rfind(')');
+	if (p_ini == string::npos || p_fin == string::npos || p_fin <= p_ini) return;
+	string inner = args.substr(p_ini + 1, p_fin - p_ini - 1);
+	
+	vector<string> items;
+	int depth = 0;
+	int start = 0;
+	for (int i = 0; i < (int)inner.size(); i++) {
+		char ch = inner[i];
+		if (ch == '(' || ch == '[') depth++;
+		else if (ch == ')' || ch == ']') depth--;
+		else if (ch == ',' && depth == 0) {
+			items.push_back(inner.substr(start, i - start));
+			start = i + 1;
+		}
+	}
+	if (start < (int)inner.size()) items.push_back(inner.substr(start));
+	
+	string res = "";
+	for (size_t i = 0; i < items.size(); i++) {
+		string item = items[i];
+		while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+		while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
+		if (item.empty()) continue;
+		
+		bool por_ref = false;
+		if (item.find('&') != string::npos) {
+			por_ref = true;
+			ReemplazarTodos(item, "&", "");
+			while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+			while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
+		}
+		size_t p_col = item.find(':');
+		if (p_col != string::npos) {
+			item = item.substr(0, p_col);
+			while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
+		}
+		if (por_ref && !LeftCompareNC(item, "POR REFERENCIA") && item.find(" POR REFERENCIA") == string::npos && item.find(" por referencia") == string::npos) {
+			item += " POR REFERENCIA";
+		}
+		if (!res.empty()) res += ", ";
+		res += item;
+	}
+	args = "(" + res + ")";
+}
+
+static map<string, string> g_constantes;
+
+static bool EsIdentChar(char c) {
+	return EsLetra(c) || (c >= '0' && c <= '9') || c == '_';
+}
+
+static void ReemplazarIdentificador(string &s, const string &ident, const string &val) {
+	string ident_u = ToUpper(ident);
+	size_t id_len = ident.size();
+	string res = "";
+	res.reserve(s.size() + 16);
+	bool in_str = false;
+	char quote_char = 0;
+	
+	for (size_t i = 0; i < s.size(); ) {
+		char c = s[i];
+		if (in_str) {
+			res += c;
+			if (c == quote_char) in_str = false;
+			i++;
+			continue;
+		}
+		if (c == '"' || c == '\'') {
+			in_str = true;
+			quote_char = c;
+			res += c;
+			i++;
+			continue;
+		}
+		
+		if (i + id_len <= s.size()) {
+			bool match = true;
+			for (size_t k = 0; k < id_len; k++) {
+				if (ToUpper(s[i + k]) != ident_u[k]) {
+					match = false;
+					break;
+				}
+			}
+			if (match) {
+				bool left_ok = (i == 0 || !EsIdentChar(s[i - 1]));
+				bool right_ok = (i + id_len == s.size() || !EsIdentChar(s[i + id_len]));
+				if (left_ok && right_ok) {
+					res += val;
+					i += id_len;
+					continue;
+				}
+			}
+		}
+		res += c;
+		i++;
+	}
+	s = res;
+}
+
+static void SustituirConstantesEnCadena(string &s) {
+	for (map<string, string>::iterator it = g_constantes.begin(); it != g_constantes.end(); ++it) {
+		ReemplazarIdentificador(s, it->first, it->second);
+	}
+}
+
+static vector<string> SepararComasFueraDeComillas(const string &s) {
+	vector<string> items;
+	string curr = "";
+	int depth = 0;
+	bool in_str = false;
+	char quote_char = 0;
+	for (size_t i = 0; i < s.size(); i++) {
+		char c = s[i];
+		if (in_str) {
+			curr += c;
+			if (c == quote_char) in_str = false;
+			continue;
+		}
+		if (c == '"' || c == '\'') {
+			in_str = true;
+			quote_char = c;
+			curr += c;
+			continue;
+		}
+		if (c == '(' || c == '[') {
+			depth++;
+			curr += c;
+			continue;
+		}
+		if (c == ')' || c == ']') {
+			depth--;
+			curr += c;
+			continue;
+		}
+		if (c == ',' && depth == 0) {
+			items.push_back(curr);
+			curr = "";
+		} else {
+			curr += c;
+		}
+	}
+	if (!curr.empty()) {
+		items.push_back(curr);
+	}
+	return items;
+}
+
+static void QuitarComentariosFueraDeComillas(string &s) {
+	bool in_str = false;
+	char quote_char = 0;
+	for (size_t i = 0; i < s.size(); i++) {
+		char c = s[i];
+		if (in_str) {
+			if (c == quote_char) in_str = false;
+			continue;
+		}
+		if (c == '"' || c == '\'') {
+			in_str = true;
+			quote_char = c;
+			continue;
+		}
+		if (i + 1 < s.size() && c == '/' && s[i+1] == '/') {
+			s.erase(i);
+			break;
+		}
+		if (i + 1 < s.size() && c == '/' && s[i+1] == '*') {
+			size_t p_fin = s.find("*/", i + 2);
+			if (p_fin != string::npos) {
+				s.erase(i, p_fin + 2 - i);
+				i--;
+			} else {
+				s.erase(i);
+				break;
+			}
+		}
+	}
+}
+
+static void ParsearDeclaracionConstantes(const string &linea_decl) {
+	string limpia = linea_decl;
+	QuitarComentariosFueraDeComillas(limpia);
+	vector<string> items = SepararComasFueraDeComillas(limpia);
+	for (size_t idx = 0; idx < items.size(); idx++) {
+		string item = items[idx];
+		while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+		while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t' || item[item.size()-1] == ';')) item.erase(item.size()-1);
+		if (item.empty()) continue;
+		
+		int pos_eq = -1;
+		bool in_s = false;
+		char q_c = 0;
+		for (size_t i = 0; i < item.size(); i++) {
+			char c = item[i];
+			if (in_s) {
+				if (c == q_c) in_s = false;
+				continue;
+			}
+			if (c == '"' || c == '\'') {
+				in_s = true;
+				q_c = c;
+				continue;
+			}
+			if (c == '=') {
+				pos_eq = (int)i;
+				break;
+			}
+		}
+		if (pos_eq == -1) continue;
+		
+		string lhs = item.substr(0, pos_eq);
+		string rhs = item.substr(pos_eq + 1);
+		while (!lhs.empty() && (lhs[0] == ' ' || lhs[0] == '\t')) lhs.erase(0, 1);
+		while (!lhs.empty() && (lhs[lhs.size()-1] == ' ' || lhs[lhs.size()-1] == '\t')) lhs.erase(lhs.size()-1);
+		while (!rhs.empty() && (rhs[0] == ' ' || rhs[0] == '\t')) rhs.erase(0, 1);
+		while (!rhs.empty() && (rhs[rhs.size()-1] == ' ' || rhs[rhs.size()-1] == '\t' || rhs[rhs.size()-1] == ';')) rhs.erase(rhs.size()-1);
+		
+		size_t pos_colon = lhs.find(':');
+		string name = (pos_colon != string::npos) ? lhs.substr(0, pos_colon) : lhs;
+		while (!name.empty() && (name[name.size()-1] == ' ' || name[name.size()-1] == '\t')) name.erase(name.size()-1);
+		while (!name.empty() && (name[0] == ' ' || name[0] == '\t')) name.erase(0, 1);
+		if (name.empty()) continue;
+		
+		SustituirConstantesEnCadena(rhs);
+		
+		bool es_string = (rhs.size() >= 2 && ((rhs[0] == '"' && rhs[rhs.size()-1] == '"') || (rhs[0] == '\'' && rhs[rhs.size()-1] == '\'')));
+		bool es_parens = (rhs.size() >= 2 && rhs[0] == '(' && rhs[rhs.size()-1] == ')');
+		bool es_num_sin_signo = false;
+		{
+			size_t k = 0;
+			bool has_digits = false;
+			bool dot_seen = false;
+			while (k < rhs.size() && ((rhs[k] >= '0' && rhs[k] <= '9') || (!dot_seen && rhs[k] == '.'))) {
+				if (rhs[k] == '.') dot_seen = true;
+				else has_digits = true;
+				k++;
+			}
+			if (has_digits && k == rhs.size()) es_num_sin_signo = true;
+		}
+		bool es_ident_simple = !rhs.empty();
+		for (size_t k = 0; k < rhs.size(); k++) {
+			if (!EsIdentChar(rhs[k])) { es_ident_simple = false; break; }
+		}
+		
+		string val = rhs;
+		if (!es_string && !es_parens && !es_num_sin_signo && !es_ident_simple) {
+			val = "(" + rhs + ")";
+		}
+		
+		g_constantes[ToUpper(name)] = val;
+	}
+}
+
+static bool DetectarAsignacionCatedra(const string &t, string &lhs_base, string &lhs_full, string &rhs, string &op_str) {
+	if (t.empty()) return false;
+	if (!EsLetra(t[0]) && t[0] != '_') return false;
+	
+	static const char *kw_no_asig[] = {
+		"SI", "SINO", "FINSI", "MIENTRAS", "FINMIENTRAS", "REPETIR", "HASTA",
+		"VARIAR", "FINVARIAR", "PARA", "FINPARA", "SEGUN", "FINSEGUN",
+		"DE", "LEER", "ESCRIBIR", "DEFINIR", "DIMENSION", "SUBPROCESO", "FINSUBPROCESO",
+		"PROCEDIMIENTO", "FINPROCEDIMIENTO", "FUNCION", "FINFUNCION",
+		"RETORNO", "ALGORITMO", "FINALGORITMO", "PROGRAMA", "FINPROGRAMA", "INICIO", "VAR", "CONST", NULL
+	};
+	
+	for (int k = 0; kw_no_asig[k] != NULL; k++) {
+		string kw = kw_no_asig[k];
+		if (LeftCompareNC(t, kw)) {
+			if (t.size() == kw.size() || !EsIdentChar(t[kw.size()])) {
+				return false;
+			}
+		}
+	}
+	
+	bool in_str = false;
+	char quote_char = 0;
+	int depth = 0;
+	int pos_op = -1;
+	int len_op = 0;
+	
+	for (size_t i = 0; i < t.size(); i++) {
+		char c = t[i];
+		if (in_str) {
+			if (c == quote_char) in_str = false;
+			continue;
+		}
+		if (c == '"' || c == '\'') {
+			in_str = true;
+			quote_char = c;
+			continue;
+		}
+		if (c == '(' || c == '[') {
+			depth++;
+			continue;
+		}
+		if (c == ')' || c == ']') {
+			depth--;
+			continue;
+		}
+		if (depth == 0) {
+			if (i + 1 < t.size() && t[i] == '<' && t[i+1] == '-') {
+				pos_op = (int)i;
+				len_op = 2;
+				break;
+			}
+			if (i + 1 < t.size() && t[i] == ':' && t[i+1] == '=') {
+				pos_op = (int)i;
+				len_op = 2;
+				break;
+			}
+			if (c == '=') {
+				if (i + 1 < t.size() && t[i+1] == '=') {
+				} else if (i > 0 && (t[i-1] == '<' || t[i-1] == '>' || t[i-1] == '!')) {
+				} else {
+					pos_op = (int)i;
+					len_op = 1;
+					break;
+				}
+			}
+		}
+	}
+	
+	if (pos_op == -1) return false;
+	
+	lhs_full = t.substr(0, pos_op);
+	op_str = t.substr(pos_op, len_op);
+	rhs = t.substr(pos_op + len_op);
+	
+	while (!lhs_full.empty() && (lhs_full[lhs_full.size()-1] == ' ' || lhs_full[lhs_full.size()-1] == '\t')) lhs_full.erase(lhs_full.size()-1);
+	while (!rhs.empty() && (rhs[0] == ' ' || rhs[0] == '\t')) rhs.erase(0, 1);
+	
+	size_t p_id = 0;
+	while (p_id < lhs_full.size() && EsIdentChar(lhs_full[p_id])) p_id++;
+	lhs_base = lhs_full.substr(0, p_id);
+	
+	return true;
+}
+
+static string SustituirLeerArgs(const string &args_str) {
+	vector<string> items = SepararComasFueraDeComillas(args_str);
+	string res = "";
+	for (size_t idx = 0; idx < items.size(); idx++) {
+		string item = items[idx];
+		while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+		while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
+		if (item.empty()) continue;
+		
+		size_t p_id = 0;
+		while (p_id < item.size() && EsIdentChar(item[p_id])) p_id++;
+		string base = item.substr(0, p_id);
+		
+		string item_sub;
+		if (g_constantes.count(ToUpper(base))) {
+			item_sub = item;
+		} else {
+			item_sub = item;
+			SustituirConstantesEnCadena(item_sub);
+		}
+		if (!res.empty()) res += ", ";
+		res += item_sub;
+	}
+	return res;
+}
+
+static void PreprocesarConstantesCatedra(Programa &prog) {
+	g_constantes.clear();
+	bool inside_const_block = false;
+	
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string t = s.substr(p);
+		string t_sin_pyc = t;
+		while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' ' || t_sin_pyc[t_sin_pyc.size()-1] == '\t'))
+			t_sin_pyc.erase(t_sin_pyc.size()-1);
+			
+		if (t.empty()) continue;
+		if (LeftCompare(t, "//") || LeftCompare(t, "#")) continue;
+		
+		if (LeftCompareNC(t, "CONST ") || LeftCompareNC(t, "CONST\t")) {
+			string decls = t.substr(5);
+			ParsearDeclaracionConstantes(decls);
+			prog[i].instruccion = "";
+			continue;
+		}
+		
+		if (EqualsNC(t_sin_pyc, "CONST") || EqualsNC(t_sin_pyc, "CONST:")) {
+			inside_const_block = true;
+			prog[i].instruccion = "";
+			continue;
+		}
+		
+		if (inside_const_block) {
+			if (LeftCompareNC(t, "VAR ") || LeftCompareNC(t, "VAR\t") ||
+			    LeftCompareNC(t, "INICIO") || LeftCompareNC(t, "PROGRAMA") ||
+			    LeftCompareNC(t, "PROCEDIMIENTO") || LeftCompareNC(t, "FUNCION") ||
+			    LeftCompare(t, "FUNCI\xDA") || LeftCompare(t, "FUNCI\xC3\x9A") ||
+			    LeftCompareNC(t, "FIN") || t.find('=') == string::npos) {
+				inside_const_block = false;
+			} else {
+				ParsearDeclaracionConstantes(t);
+				prog[i].instruccion = "";
+				continue;
+			}
+		}
+	}
+	
+	if (g_constantes.empty()) return;
+	
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string indent = s.substr(0, p);
+		string t = s.substr(p);
+		if (t.empty()) continue;
+		if (LeftCompare(t, "//") || LeftCompare(t, "#")) continue;
+		
+		if (LeftCompareNC(t, "PROGRAMA ") || LeftCompareNC(t, "PROGRAMA\t")) continue;
+		
+		if (LeftCompareNC(t, "LEER(") || LeftCompareNC(t, "LEER (") || LeftCompareNC(t, "LEER\t(")) {
+			size_t p_par = t.find('(');
+			size_t p_cierre = t.rfind(')');
+			if (p_par != string::npos && p_cierre != string::npos && p_cierre > p_par) {
+				string args = t.substr(p_par + 1, p_cierre - (p_par + 1));
+				string suffix = t.substr(p_cierre);
+				prog[i].instruccion = indent + t.substr(0, p_par + 1) + SustituirLeerArgs(args) + suffix;
+				continue;
+			}
+		} else if (LeftCompareNC(t, "LEER ") || LeftCompareNC(t, "LEER\t")) {
+			string args = t.substr(4);
+			prog[i].instruccion = indent + "LEER " + SustituirLeerArgs(args);
+			continue;
+		}
+		
+		string lhs_base, lhs_full, rhs, op_str;
+		if (DetectarAsignacionCatedra(t, lhs_base, lhs_full, rhs, op_str)) {
+			string rhs_sub = rhs;
+			SustituirConstantesEnCadena(rhs_sub);
+			if (g_constantes.count(ToUpper(lhs_base))) {
+				prog[i].instruccion = indent + lhs_full + " " + op_str + " " + rhs_sub;
+			} else {
+				string lhs_sub = lhs_full;
+				SustituirConstantesEnCadena(lhs_sub);
+				prog[i].instruccion = indent + lhs_sub + " " + op_str + " " + rhs_sub;
+			}
+			continue;
+		}
+		
+		string t_sub = t;
+		SustituirConstantesEnCadena(t_sub);
+		prog[i].instruccion = indent + t_sub;
+	}
+}
+
+static set<string> g_catedra_funcs;
+
+static void PreprocesarSubprogramasCatedra(Programa &prog) {
+	g_catedra_funcs.clear();
+	
+	bool hay_subprogramas = false;
+	string main_name = "";
+	int line_programa = -1;
+	
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string t = s.substr(p);
+		string t_sin_pyc = t;
+		while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' ' || t_sin_pyc[t_sin_pyc.size()-1] == '\t'))
+			t_sin_pyc.erase(t_sin_pyc.size()-1);
+			
+		bool es_proc = LeftCompareNC(t, "PROCEDIMIENTO ") || LeftCompareNC(t, "PROCEDIMIENTO(") || LeftCompareNC(t, "PROCEDIMIENTO\t") ||
+		               EqualsNC(t_sin_pyc, "PROCEDIMIENTO") || EqualsNC(t_sin_pyc, "FINPROCEDIMIENTO") || EqualsNC(t_sin_pyc, "FIN PROCEDIMIENTO");
+		bool es_retorno = EqualsNC(t_sin_pyc, "RETORNO");
+		bool es_func_con_tipo = (LeftCompareNC(t, "FUNCION ") || LeftCompareNC(t, "FUNCION\t") || LeftCompareNC(t, "FUNCION(") ||
+		                         LeftCompare(t, "FUNCI\xDA ") || LeftCompare(t, "FUNCI\xDA\t") || LeftCompare(t, "FUNCI\xDA(") ||
+		                         LeftCompare(t, "FUNCI\xC3\x9A ") || LeftCompare(t, "FUNCI\xC3\x9A\t") || LeftCompare(t, "FUNCI\xC3\x9A(") ||
+		                         LeftCompare(t, "funci\xF3n ") || LeftCompare(t, "funci\xF3n\t") || LeftCompare(t, "funci\xF3n(")) &&
+		                        (t.find(':') != string::npos);
+		bool es_inicio_prog = EqualsNC(t_sin_pyc, "INICIO PROGRAMA") || LeftCompareNC(t_sin_pyc, "INICIO PROGRAMA");
+
+		if (es_proc || es_retorno || es_func_con_tipo || es_inicio_prog) {
+			hay_subprogramas = true;
+		}
+		
+		if (line_programa == -1 && (LeftCompareNC(t, "PROGRAMA ") || LeftCompareNC(t, "PROGRAMA\t"))) {
+			line_programa = i;
+			string rem = t.substr(9);
+			while (!rem.empty() && (rem[0] == ' ' || rem[0] == '\t')) rem.erase(0, 1);
+			while (!rem.empty() && (rem[rem.size()-1] == ';' || rem[rem.size()-1] == ' ' || rem[rem.size()-1] == '\t')) rem.erase(rem.size()-1);
+			main_name = rem;
+		}
+	}
+	
+	if (!hay_subprogramas) {
+		return;
+	}
+	
+	if (main_name.empty()) {
+		main_name = "principal";
+	}
+	
+	bool inside_func = false;
+	string current_func_name = "";
+	string current_func_ret = "";
+	bool inside_proc = false;
+	bool main_emitted = false;
+	
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string t = s.substr(p);
+		string t_sin_pyc = t;
+		while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' ' || t_sin_pyc[t_sin_pyc.size()-1] == '\t'))
+			t_sin_pyc.erase(t_sin_pyc.size()-1);
+		
+		if (t.empty()) continue;
+		
+		if (LeftCompare(t, "//") || LeftCompare(t, "#")) continue;
+		
+		// 1) Linea del PROGRAMA inicial
+		if (i == line_programa) {
+			prog[i].instruccion = "";
+			continue;
+		}
+		
+		// 2) PROCEDIMIENTO nombre [(args)]
+		if (LeftCompareNC(t, "PROCEDIMIENTO ") || LeftCompareNC(t, "PROCEDIMIENTO\t") || LeftCompareNC(t, "PROCEDIMIENTO(")) {
+			inside_proc = true;
+			string resto = t.substr(13);
+			while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
+			while (!resto.empty() && (resto[resto.size()-1] == ';' || resto[resto.size()-1] == ' ' || resto[resto.size()-1] == '\t')) resto.erase(resto.size()-1);
+			
+			string fname;
+			string args_str;
+			size_t p_par = resto.find('(');
+			if (p_par != string::npos) {
+				fname = resto.substr(0, p_par);
+				args_str = resto.substr(p_par);
+			} else {
+				fname = resto;
+				args_str = "";
+			}
+			while (!fname.empty() && (fname[fname.size()-1] == ' ' || fname[fname.size()-1] == '\t')) fname.erase(fname.size()-1);
+			NormalizarParametros(args_str);
+			prog[i].instruccion = "SUBPROCESO " + fname + (args_str.empty() ? "" : (" " + args_str));
+			continue;
+		}
+		
+		// 3) FINPROCEDIMIENTO
+		if (EqualsNC(t_sin_pyc, "FINPROCEDIMIENTO") || EqualsNC(t_sin_pyc, "FIN PROCEDIMIENTO")) {
+			inside_proc = false;
+			prog[i].instruccion = "FINSUBPROCESO";
+			continue;
+		}
+		
+		// 4) FUNCION nombre [(args)]: TIPO
+		bool es_func_kw = LeftCompareNC(t, "FUNCION ") || LeftCompareNC(t, "FUNCION\t") || LeftCompareNC(t, "FUNCION(") ||
+		                  LeftCompare(t, "FUNCI\xDA ") || LeftCompare(t, "FUNCI\xDA\t") || LeftCompare(t, "FUNCI\xDA(") ||
+		                  LeftCompare(t, "FUNCI\xC3\x9A ") || LeftCompare(t, "FUNCI\xC3\x9A\t") || LeftCompare(t, "FUNCI\xC3\x9A(") ||
+		                  LeftCompare(t, "funci\xF3n ") || LeftCompare(t, "funci\xF3n\t") || LeftCompare(t, "funci\xF3n(");
+		if (es_func_kw && t.find(':') != string::npos) {
+			size_t p_dp = t.rfind(':');
+			string tipo_str = t.substr(p_dp + 1);
+			string cabecera = t.substr(0, p_dp);
+			
+			size_t p_sp = 0;
+			while (p_sp < cabecera.size() && cabecera[p_sp] != ' ' && cabecera[p_sp] != '\t' && cabecera[p_sp] != '(') p_sp++;
+			string resto_cab = cabecera.substr(p_sp);
+			while (!resto_cab.empty() && (resto_cab[0] == ' ' || resto_cab[0] == '\t')) resto_cab.erase(0, 1);
+			
+			string fname;
+			string args_str;
+			size_t p_par = resto_cab.find('(');
+			if (p_par != string::npos) {
+				fname = resto_cab.substr(0, p_par);
+				args_str = resto_cab.substr(p_par);
+			} else {
+				fname = resto_cab;
+				args_str = "";
+			}
+			while (!fname.empty() && (fname[fname.size()-1] == ' ' || fname[fname.size()-1] == '\t')) fname.erase(fname.size()-1);
+			NormalizarParametros(args_str);
+			string tipo_normalizado = NormalizarTipoCatedra(tipo_str);
+			string ret_var = "_ret_" + fname;
+			
+			prog[i].instruccion = "SUBPROCESO " + ret_var + " <- " + fname + (args_str.empty() ? "" : (" " + args_str));
+			prog.Insert(i + 1, "DEFINIR " + ret_var + " COMO " + tipo_normalizado + ";");
+			i++;
+			
+			inside_func = true;
+			current_func_name = fname;
+			current_func_ret = ret_var;
+			g_catedra_funcs.insert(ToUpper(fname));
+			continue;
+		}
+		
+		// 5) RETORNO o FINFUNCION
+		if (EqualsNC(t_sin_pyc, "RETORNO") || EqualsNC(t_sin_pyc, "FINFUNCION") || EqualsNC(t_sin_pyc, "FIN FUNCION") ||
+		    EqualsNC(t_sin_pyc, "FINFUNCI\xDA") || EqualsNC(t_sin_pyc, "FIN FUNCI\xDA") ||
+		    EqualsNC(t_sin_pyc, "FINFUNCI\xC3\x9A") || EqualsNC(t_sin_pyc, "FIN FUNCI\xC3\x9A") ||
+		    EqualsNC(t_sin_pyc, "finfunci\xF3n") || EqualsNC(t_sin_pyc, "fin funci\xF3n")) {
+			inside_func = false;
+			current_func_name = "";
+			current_func_ret = "";
+			prog[i].instruccion = "FINFUNCION";
+			continue;
+		}
+		
+		// 6) Asignacion al nombre de la funcion dentro de FUNCION
+		if (inside_func && !current_func_name.empty()) {
+			int fn_len = (int)current_func_name.size();
+			if (LeftCompareNC(t, current_func_name)) {
+				bool es_ident = (t.size() == (size_t)fn_len || (!EsLetra(t[fn_len]) && !isdigit(t[fn_len]) && t[fn_len] != '_'));
+				if (es_ident) {
+					int k = fn_len;
+					while (k < (int)t.size() && (t[k] == ' ' || t[k] == '\t')) k++;
+					bool es_asig = false;
+					if (k < (int)t.size() && t[k] == '=' && (k + 1 >= (int)t.size() || t[k+1] != '=')) es_asig = true;
+					else if (k + 1 < (int)t.size() && t[k] == '<' && t[k+1] == '-') es_asig = true;
+					else if (k + 1 < (int)t.size() && t[k] == ':' && t[k+1] == '=') es_asig = true;
+					
+					if (es_asig) {
+						int lead = 0;
+						while (lead < (int)s.size() && (s[lead] == ' ' || s[lead] == '\t')) lead++;
+						string leading_spaces = s.substr(0, lead);
+						string resto_linea = t.substr(fn_len);
+						prog[i].instruccion = leading_spaces + current_func_ret + resto_linea;
+						continue;
+					}
+				}
+			}
+		}
+		
+		// 7) INICIO / INICIO PROGRAMA
+		if (EqualsNC(t_sin_pyc, "INICIO") || EqualsNC(t_sin_pyc, "INICIO PROGRAMA") || LeftCompareNC(t_sin_pyc, "INICIO PROGRAMA") || LeftCompareNC(t_sin_pyc, "INICIO ")) {
+			if (inside_func || inside_proc) {
+				prog[i].instruccion = "";
+			} else {
+				if (!main_emitted) {
+					prog[i].instruccion = "ALGORITMO " + main_name;
+					main_emitted = true;
+				} else {
+					prog[i].instruccion = "";
+				}
+			}
+			continue;
+		}
+		
+		// 8) FINPROGRAMA
+		if (EqualsNC(t_sin_pyc, "FINPROGRAMA") || EqualsNC(t_sin_pyc, "FIN PROGRAMA")) {
+			prog[i].instruccion = "FINALGORITMO";
+			continue;
+		}
+		
+		// 9) Primer enunciado del programa principal fuera de subprogramas
+		if (!inside_func && !inside_proc && !main_emitted) {
+			prog.Insert(i, "ALGORITMO " + main_name);
+			main_emitted = true;
+			i++;
+			continue;
+		}
+	}
+}
+
+// Normaliza accesos a matrices multidimensionales de estilo C++
+// transformando ']...[' por ', ':  matriz[i][j] -> matriz[i, j]
+static void NormalizarAccesoMatrices(string &s) {
+	bool in_str = false;
+	for (size_t i = 0; i < s.size(); i++) {
+		char c = s[i];
+		if (in_str) {
+			if (c == '"' || c == '\'') in_str = false;
+		} else if (c == '"' || c == '\'') {
+			in_str = true;
+		} else if (c == ']') {
+			size_t j = i + 1;
+			while (j < s.size() && (s[j] == ' ' || s[j] == '\t')) j++;
+			if (j < s.size() && s[j] == '[') {
+				s.replace(i, j - i + 1, ", ");
+				i += 1;
+			}
+		}
+	}
+}
+
 static void AplicarSinonimosCatedra(string &cadena) {
 
 	// Los operadores logicos de la catedra usan corchetes:
@@ -534,6 +1257,12 @@ static void AplicarSinonimosCatedra(string &cadena) {
 	ReemplazarTodos(cadena, "[Y]", " Y ");
 	ReemplazarTodos(cadena, "[O]", " O ");
 	ReemplazarTodos(cadena, "[NO]", " NO ");
+	ReemplazarTodos(cadena, "[y]", " Y ");
+	ReemplazarTodos(cadena, "[o]", " O ");
+	ReemplazarTodos(cadena, "[no]", " NO ");
+
+	// Normalizar accesos a matrices multidimensionales estilo C++: matriz[i][j] -> matriz[i, j]
+	NormalizarAccesoMatrices(cadena);
 
 	// Trabajar sobre una copia sin espacios/tabs iniciales para
 	// poder comparar prefijos comodamente. Ojo: esta funcion corre
@@ -599,16 +1328,16 @@ static void AplicarSinonimosCatedra(string &cadena) {
 		return;
 	}
 
-	// --- VAR n1[,n2,...]: TIPO  ->  Definir n1[,n2] Como Tipo; ---
+	// --- VAR n1[,n2,...]: TIPO  ->  [DIMENSION ...] Definir n1[,n2] Como Tipo; ---
 	if (LeftCompare(t, "VAR ")) {
 		int dospuntos = (int)t_sin_pyc.find_last_of(':');
 		if (dospuntos != -1) {
 			string nombres = t_sin_pyc.substr(4, dospuntos - 4);
 			string tipo = t_sin_pyc.substr(dospuntos + 1);
 			int q = 0;
-			while (q < (int)tipo.size() && tipo[q] == ' ') q++;
+			while (q < (int)tipo.size() && (tipo[q] == ' ' || tipo[q] == '\t')) q++;
 			tipo = tipo.substr(q);
-			while (!tipo.empty() && tipo[tipo.size()-1] == ' ') tipo.erase(tipo.size()-1);
+			while (!tipo.empty() && (tipo[tipo.size()-1] == ' ' || tipo[tipo.size()-1] == '\t')) tipo.erase(tipo.size()-1);
 
 			string tipo_final;
 			if (tipo == "ENTERO") tipo_final = "ENTERO";
@@ -618,7 +1347,60 @@ static void AplicarSinonimosCatedra(string &cadena) {
 			else if (tipo == "CAR") tipo_final = "CARACTER"; // ver caveat CAR/CADENA
 			else tipo_final = tipo; // tipo de usuario (enum/registro): sin tocar
 
-			cadena = "DEFINIR " + nombres + " COMO " + tipo_final + ";";
+			// Separar los identificadores por comas fuera de corchetes/parentesis
+			vector<string> items;
+			int depth_bracket = 0;
+			int start_item = 0;
+			for (int k = 0; k < (int)nombres.size(); k++) {
+				char ch = nombres[k];
+				if (ch == '[' || ch == '(') depth_bracket++;
+				else if (ch == ']' || ch == ')') depth_bracket--;
+				else if (ch == ',' && depth_bracket == 0) {
+					items.push_back(nombres.substr(start_item, k - start_item));
+					start_item = k + 1;
+				}
+			}
+			if (start_item < (int)nombres.size()) {
+				items.push_back(nombres.substr(start_item));
+			}
+
+			vector<string> dimensiones;
+			vector<string> solo_nombres;
+			for (size_t idx = 0; idx < items.size(); idx++) {
+				string item = items[idx];
+				while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+				while (!item.empty() && (item[item.size() - 1] == ' ' || item[item.size() - 1] == '\t')) item.erase(item.size() - 1);
+				if (item.empty()) continue;
+
+				size_t pos_corchete = item.find('[');
+				if (pos_corchete == string::npos) pos_corchete = item.find('(');
+				if (pos_corchete != string::npos) {
+					string var_name = item.substr(0, pos_corchete);
+					while (!var_name.empty() && (var_name[var_name.size() - 1] == ' ' || var_name[var_name.size() - 1] == '\t'))
+						var_name.erase(var_name.size() - 1);
+					dimensiones.push_back(item);
+					solo_nombres.push_back(var_name);
+				} else {
+					solo_nombres.push_back(item);
+				}
+			}
+
+			string str_def;
+			for (size_t n = 0; n < solo_nombres.size(); n++) {
+				if (n > 0) str_def += ", ";
+				str_def += solo_nombres[n];
+			}
+
+			if (!dimensiones.empty()) {
+				string str_dim;
+				for (size_t d = 0; d < dimensiones.size(); d++) {
+					if (d > 0) str_dim += ", ";
+					str_dim += dimensiones[d];
+				}
+				cadena = "DIMENSION " + str_dim + "; DEFINIR " + str_def + " COMO " + tipo_final + ";";
+			} else {
+				cadena = "DEFINIR " + str_def + " COMO " + tipo_final + ";";
+			}
 			return;
 		}
 	}
@@ -717,6 +1499,18 @@ static void AplicarSinonimosCatedra(string &cadena) {
 		t_sin_pyc == "FINSEG\xDAN" || t_sin_pyc == "FIN SEG\xDAN" ||
 		t_sin_pyc == "FINSEG\xC3\x9AN" || t_sin_pyc == "FIN SEG\xC3\x9AN") {
 		cadena = "FINSEGUN;";
+		return;
+	}
+
+	// --- RETORNO  ->  FINFUNCION ---
+	if (EqualsNC(t_sin_pyc, "RETORNO")) {
+		cadena = "FINFUNCION";
+		return;
+	}
+
+	// --- FINPROCEDIMIENTO  ->  FINSUBPROCESO ---
+	if (EqualsNC(t_sin_pyc, "FINPROCEDIMIENTO") || EqualsNC(t_sin_pyc, "FIN PROCEDIMIENTO")) {
+		cadena = "FINSUBPROCESO";
 		return;
 	}
 }
@@ -1065,6 +1859,7 @@ int SynCheck(int linea_from, int linea_to) {
 				bool es_proceso = instruction_type==IT_PROCESO;
 				current_func=subprocesos[ExtraerNombreDeSubProceso(cadena)];
 				current_func->line_start=x;
+				current_func->retorno_asignado=false;
 				bucles.push_back(programa.GetLoc(x,es_proceso?IT_PROCESO:IT_SUBPROCESO));
 				current_func->userline_start=Inter.GetLineNumber();
 				memoria=current_func->memoria=new Memoria(current_func);
@@ -1079,6 +1874,9 @@ int SynCheck(int linea_from, int linea_to) {
 						if (!current_func->nombres[0].empty()) {
 							tipo_var ret_t = memoria->LeerTipo(current_func->nombres[0]);
 							current_func->tipos[0].set(ret_t);
+							if (current_func->is_catedra_func && !current_func->retorno_asignado) {
+								SynError (352,"La funci\xf3n '" + current_func->id + "' debe retornar un valor mediante una asignaci\xf3n a su nombre."); errores++;
+							}
 						}
 						current_func->userline_end=Inter.GetLineNumber(); current_func=NULL; 
 					}
@@ -1113,7 +1911,7 @@ int SynCheck(int linea_from, int linea_to) {
 					else if (def_tipo=="REALES"||def_tipo=="NUMERO"||def_tipo=="NUMEROS"||def_tipo=="NUMERICA"||
 							 def_tipo=="NUMERICO"||def_tipo=="NUMERICAS"||def_tipo=="NUMERICOS") def_tipo="REAL";
 					else if (def_tipo=="CARACTER"||def_tipo=="CARACTERES"||def_tipo=="TEXTO"||
-							 def_tipo=="TEXTOS"||def_tipo=="CADENA"||def_tipo=="CADENAS") def_tipo="CARACTER";
+							 def_tipo=="TEXTOS"||def_tipo=="CADENA"||def_tipo=="CADENAS"||def_tipo=="CAR") def_tipo="CARACTER";
 					else if (def_tipo=="LOGICOS"||def_tipo=="LOGICAS"||def_tipo=="LOGICA") def_tipo="LOGICO";
 					cadena+=def_tipo+";";
 					
@@ -1156,6 +1954,9 @@ int SynCheck(int linea_from, int linea_to) {
 				}
 			}
 			if (instruction_type==IT_ESCRIBIR || instruction_type==IT_ESCRIBIRNL){  // ------------ ESCRIBIR -----------//
+				if (current_func && current_func->is_catedra_func) {
+					SynError (351,"No se permite ESCRIBIR dentro de una funci\xf3n."); errores++;
+				}
 				if (cadena=="" || cadena==";") {SynError (53,"Faltan parámetros."); errores++;}
 				else {
 					if (cadena[cadena.size()-1]==';')
@@ -1278,6 +2079,9 @@ int SynCheck(int linea_from, int linea_to) {
 				cadena[cadena.size()-1]=';';
 			}
 			if (instruction_type==IT_LEER){  // ------------ LEER -----------//
+				if (current_func && current_func->is_catedra_func) {
+					SynError (350,"No se permite LEER dentro de una funci\xf3n."); errores++;
+				}
 				if (cadena=="" || cadena==";") { SynError (63,"Faltan parámetros."); errores++; }
 				else {
 					if (cadena[cadena.size()-1]==';')
@@ -1301,7 +2105,13 @@ int SynCheck(int linea_from, int linea_to) {
 						if (parentesis==0 && cadena[i]==',') { // comprobar validez
 							string var_name = cadena.substr(expr_start,i-expr_start);
 							if (var_name.find("(",0)==string::npos) {
-								if (!CheckVariable(var_name,65)) errores++;
+								string base_var = var_name;
+								while (!base_var.empty() && (base_var[0] == ' ' || base_var[0] == '\t')) base_var.erase(0, 1);
+								while (!base_var.empty() && (base_var[base_var.size()-1] == ' ' || base_var[base_var.size()-1] == '\t')) base_var.erase(base_var.size()-1);
+								if (g_constantes.count(ToUpper(base_var))) {
+									SynError(354, "No se puede leer sobre una constante (" + base_var + ").");
+									errores++;
+								} else if (!CheckVariable(var_name,65)) errores++;
 								else {
 									if (!memoria->EstaDefinida(var_name)) memoria->DefinirTipo(var_name,vt_desconocido); // para que aparezca en la lista de variables
 									if (memoria->LeerDims(var_name) && !ignore_logic_errors) SynError(255,"Faltan subindices para el arreglo ("+var_name+").");
@@ -1309,7 +2119,13 @@ int SynCheck(int linea_from, int linea_to) {
 							} else if (!memoria->EsArgumento(var_name.substr(0,var_name.find('(',0)))) {
 								bool name_ok=true;
 								string aname=var_name.substr(0,var_name.find("(",0));
-								if (!CheckVariable(aname,66)) { errores++; name_ok=false; }
+								while (!aname.empty() && (aname[0] == ' ' || aname[0] == '\t')) aname.erase(0, 1);
+								while (!aname.empty() && (aname[aname.size()-1] == ' ' || aname[aname.size()-1] == '\t')) aname.erase(aname.size()-1);
+								if (g_constantes.count(ToUpper(aname))) {
+									SynError(354, "No se puede leer sobre una constante (" + aname + ").");
+									errores++;
+									name_ok=false;
+								} else if (!CheckVariable(aname,66)) { errores++; name_ok=false; }
 								else if (!memoria->EstaDefinida(aname)) memoria->DefinirTipo(aname,vt_desconocido); // para que aparezca en la lista de variables
 								if (!memoria->LeerDims(aname) && !ignore_logic_errors) { 
 									SynError(256,"La variable ("+aname+") no es un arreglo."); name_ok=false;
@@ -1477,8 +2293,23 @@ int SynCheck(int linea_from, int linea_to) {
 				if (str.size()==0)
 				{SynError (85,"Asignación incompleta."); errores++;}
 				else {
-					if (!CheckVariable(str,86)) errores++;
-					string vname=str;
+					string base_vname = str;
+					while (!base_vname.empty() && (base_vname[0] == ' ' || base_vname[0] == '\t')) base_vname.erase(0, 1);
+					while (!base_vname.empty() && (base_vname[base_vname.size()-1] == ' ' || base_vname[base_vname.size()-1] == '\t')) base_vname.erase(base_vname.size()-1);
+					size_t p_par = base_vname.find('(');
+					if (p_par != string::npos) base_vname = base_vname.substr(0, p_par);
+					while (!base_vname.empty() && (base_vname[base_vname.size()-1] == ' ' || base_vname[base_vname.size()-1] == '\t')) base_vname.erase(base_vname.size()-1);
+					
+					if (g_constantes.count(ToUpper(base_vname))) {
+						SynError (353,"No se puede modificar una constante (" + base_vname + ")."); errores++;
+					} else {
+						if (!CheckVariable(str,86)) errores++;
+						string vname=str;
+					if (current_func && !current_func->nombres[0].empty()) {
+						if (vname == current_func->nombres[0]) {
+							current_func->retorno_asignado = true;
+						}
+					}
 					str=cadena;
 					str.erase(0,str.find("<-",0)+2);
 					comillas=-1; int parentesis=0;
@@ -1508,6 +2339,7 @@ int SynCheck(int linea_from, int linea_to) {
 							res.type.rounded = false; // no forzar a entero la variable asignada
 							memoria->DefinirTipo(vname,res.type);
 						}
+					}
 					}
 				}
 			}
@@ -1749,6 +2581,9 @@ int SynCheck() {
 	programa.Insert(0,""); // linea en blanco al principio, para que era?
 	int errores=0;
 	
+	PreprocesarConstantesCatedra(programa);
+	PreprocesarSubprogramasCatedra(programa);
+	
 	if (case_map) for(int i=0;i<programa.GetSize();i++) CaseMapFill(programa[i].instruccion);
 	
 	// pasar todo a mayusculas, reemplazar tabs, comillas, word_operators, corchetes, y trimear
@@ -1805,6 +2640,9 @@ int SynCheck() {
 				if (s==fw) s+=" ";
 				Funcion *func=ParsearCabeceraDeSubProceso(s.substr(fw.size()+1),es_proceso,errores);
 				func->userline_start=Inter.GetLineNumber();
+				if (g_catedra_funcs.count(func->id)) {
+					func->is_catedra_func = true;
+				}
 				subprocesos[func->id]=func;
 				if (es_proceso) { // si es el proceso principal, verificar que sea el unico, y guardar el nombre en main_process_name para despues saber a cual llamar
 					if (have_proceso) { SynError (272,"Solo puede haber un Proceso."); errores++;}
