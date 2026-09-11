@@ -1,0 +1,5 @@
+PROGRAMA prueba_error_leer_const
+CONST MAX = 50
+INICIO
+    LEER(MAX)
+FINPROGRAMA
