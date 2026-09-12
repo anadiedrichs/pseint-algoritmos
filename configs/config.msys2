@@ -1,0 +1,25 @@
+ARCH=msys2
+RM=rm -f
+MKDIR=mkdir -p
+PREFIX=
+
+WINDOWS=1
+TEMP=temp/${ARCH}_release
+BIN=bin
+EXT=.exe
+
+GCC=gcc
+GPP=g++
+AR=ar
+WINDRES=windres -I$(shell wx-config --prefix)/include/wx-3.2
+
+CFLAGS=-O3 -DNDEBUG
+CXXFLAGS=-O3 -DNDEBUG -std=c++14 -DWIN32
+LDFLAGS=-s
+
+WX_DIR=$(shell wx-config --prefix)
+WX_CXXFLAGS=$(shell wx-config --cppflags --unicode=yes) -DWX3
+WX_LDFLAGS=$(shell wx-config --libs std,stc,aui) -lwsock32
+
+GL_CXXFLAGS=$(shell wx-config --gl_libs --cppflags --unicode=yes)
+GL_LDFLAGS=$(shell wx-config --libs gl) -lopengl32 -lglu32

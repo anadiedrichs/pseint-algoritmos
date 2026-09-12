@@ -1,0 +1,4 @@
+ARCH=mac
+MAC_PREFIX=
+
+include ../configs/common.mac

@@ -1,0 +1,155 @@
+name: Build & Release PSeInt UTN-FRM-AyED
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Nombre de la versión o tag (ej: v2026.1 o test-release)'
+        required: false
+        default: 'v2026.1'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Compilar para Linux (Ubuntu x64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias de compilación
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libwxgtk3.2-dev libgl1-mesa-dev libglu1-mesa-dev
+
+      - name: Compilar PSeInt nativo (Linux)
+        run: |
+          make ARCH=lnx -j$(nproc)
+
+      - name: Ejecutar verificación sintáctica de ejemplos
+        run: |
+          echo "=== Verificando sintaxis de ejemplos ==="
+          for f in bin/ejemplos/*.psc; do
+            echo -n "$(basename "$f"): "
+            bin/bin/pseint --norun --nouser --profile=bin/perfiles/UTN-FRM-AyED "$f" || exit 1
+            echo "OK"
+          done
+
+      - name: Ejecutar suite de pruebas de cátedra
+        run: |
+          echo "=== Verificando tests de cátedra ==="
+          for f in test/catedra-*.psc; do
+            echo -n "$(basename "$f"): "
+            bin/bin/pseint --norun --nouser --profile=bin/perfiles/UTN-FRM-AyED "$f" || exit 1
+            echo "OK"
+          done
+
+      - name: Empaquetar versión portable Linux
+        run: |
+          mkdir -p dist/pseint-linux
+          cp -r bin/* dist/pseint-linux/
+          touch dist/pseint-linux/config.here
+          rm -f dist/pseint-linux/*.exe
+          cd dist
+          tar -czf pseint-utn-frm-ayed-linux-x64.tar.gz pseint-linux
+
+      - name: Subir artefacto Linux
+        uses: actions/upload-artifact@v4
+        with:
+          name: pseint-linux-x64
+          path: dist/pseint-utn-frm-ayed-linux-x64.tar.gz
+
+  build-windows:
+    name: Compilar para Windows (x64 Portable)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar MSYS2 y dependencias
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-wxwidgets3.2
+            mingw-w64-x86_64-make
+            zip
+
+      - name: Compilar PSeInt con MSYS2 MinGW64
+        run: |
+          make ARCH=msys2 -j2
+
+      - name: Empaquetar versión portable Windows
+        run: |
+          mkdir -p dist/pseint-windows
+          cp -r bin/* dist/pseint-windows/
+          touch dist/pseint-windows/config.here
+
+          # Limpiar lanzadores de Linux
+          rm -rf dist/pseint-windows/bin
+          rm -f dist/pseint-windows/pseint dist/pseint-windows/wxPSeInt
+
+          # Copiar DLLs requeridas por los ejecutables
+          ldd dist/pseint-windows/*.exe 2>/dev/null | grep -i '/mingw64/bin/' | awk '{print $3}' | sort -u | while read dll; do
+            if [ -f "$dll" ]; then
+              cp "$dll" dist/pseint-windows/
+            fi
+          done
+
+          # Asegurar DLLs de runtime
+          cp /mingw64/bin/libwx*.dll dist/pseint-windows/ 2>/dev/null || true
+          cp /mingw64/bin/libstdc++-6.dll dist/pseint-windows/ 2>/dev/null || true
+          cp /mingw64/bin/libgcc_s_seh-1.dll dist/pseint-windows/ 2>/dev/null || true
+          cp /mingw64/bin/libwinpthread-1.dll dist/pseint-windows/ 2>/dev/null || true
+
+          cd dist
+          zip -r pseint-utn-frm-ayed-windows-x64.zip pseint-windows
+
+      - name: Subir artefacto Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: pseint-windows-x64
+          path: dist/pseint-utn-frm-ayed-windows-x64.zip
+
+  publish-release:
+    name: Publicar Release en GitHub
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Descargar artefactos
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Determinar Tag y Nombre de Versión
+        id: vars
+        run: |
+          if [ -n "${{ github.event.inputs.version_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.version_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Crear o actualizar Release en GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/*.tar.gz
+            release-artifacts/*.zip
+          name: Release ${{ steps.vars.outputs.tag }}
+          tag_name: ${{ steps.vars.outputs.tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true

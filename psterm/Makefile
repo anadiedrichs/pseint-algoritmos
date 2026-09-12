@@ -4,7 +4,7 @@ CXXFLAGS+=${WX_CXXFLAGS}
 LDFLAGS+=${WX_LDFLAGS}
 
 ifdef WINDOWS
-ICON=${OBJS_DIR}\icon.o
+ICON=${OBJS_DIR}/icon.o
 else
 ICON=
 endif
