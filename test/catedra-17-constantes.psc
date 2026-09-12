@@ -19,7 +19,7 @@ VAR v[TAM]: ENTERO
 VAR radio, area: REAL
 VAR i: ENTERO
 
-INICIO PROGRAMA
+INICIO
     ESCRIBIR(SALUDO)
     ESCRIBIR("Constante PI = ", PI)
     ESCRIBIR("Constante INDICE = ", INDICE)

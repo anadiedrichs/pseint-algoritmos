@@ -1,11 +1,11 @@
 PROGRAMA test_error_io
 
-FUNCION suma_invalida(a, b): ENTERO
+FUNCION suma_invalida(a: ENTERO, b: ENTERO): ENTERO
 INICIO
-	ESCRIBIR("Calculando suma...")
+	ESCRIBIR("Esto no se permite dentro de una funcion")
 	suma_invalida = a + b
 RETORNO
 
-INICIO PROGRAMA
-	ESCRIBIR(suma_invalida(2, 3))
+INICIO
+	ESCRIBIR(suma_invalida(5, 3))
 FINPROGRAMA

@@ -5,5 +5,5 @@ INICIO
 	REPETIR
 		cuenta = cuenta + 1
 		ESCRIBIR("Cuenta: ", cuenta)
-	HASTA(cuenta = 3)
+	HASTA QUE(cuenta = 3)
 FINPROGRAMA

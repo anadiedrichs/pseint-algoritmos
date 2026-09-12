@@ -59,16 +59,16 @@ int main() {
 * **Resta**: \- (Ambos)  
 * **Multiplicación**: \* (Ambos)  
 * **División**: / (Ambos)  
-* **Módulo (Resto)**: MOD o % en Pseudocódigo ![][image1] % en C++
+* **Módulo (Resto)**: MOD o % en Pseudocódigo -> % en C++
 
 ### **Operadores Relacionales**
 
-* **Igual**: \= en Pseudocódigo ![][image1] \== en C++  
+* **Igual**: \= en Pseudocódigo -> \== en C++  
 * **Mayor**: \> (Ambos)  
 * **Menor**: \< (Ambos)  
 * **Mayor o Igual**: \>= (Ambos)  
 * **Menor o Igual**: \<= (Ambos)  
-* **Distinto**: \!= o \<\> en Pseudocódigo ![][image1] \!= en C++
+* **Distinto**: \!= o \<\> en Pseudocódigo -> \!= en C++
 
 ### **Operadores Lógicos**
 
@@ -161,7 +161,7 @@ Iteración controlada por un contador, límite inicial, final y un incremento (s
 
 **Pseudocódigo**
 
-VARIAR contador DE 1 HASTA 10 SALTO 1  
+VARIAR contador DE 1 HASTA 10 PASO 1  
     // sentencias  
 FINVARIAR
 
@@ -199,7 +199,7 @@ Se ejecuta al menos 1 vez. **ATENCIÓN:** Existe una diferencia lógica fundamen
 
 REPETIR  
     LEER(numero)  
-HASTA (numero \> 0 \[Y\] numero \< 100\)
+HASTA QUE (numero \> 0 \[Y\] numero \< 100\)
 
 **C++**
 
@@ -213,8 +213,8 @@ do {
 
 **ATENCIÓN AL ÍNDICE:**
 
-* **Pseudocódigo**: Los índices comienzan en ![][image2]. El tamaño define el índice máximo.  
-* **C++**: Los índices comienzan en ![][image3]. El tamaño define la cantidad total, el índice máximo es ![][image4].
+* **Pseudocódigo**: Los índices comienzan en 1. El tamaño define el índice máximo.  
+* **C++**: Los índices comienzan en 0. El tamaño define la cantidad total, el índice máximo es tamaño - 1.
 
 **Declaración**:
 
@@ -236,7 +236,7 @@ Agrupan variables (campos) de distintos tipos de datos bajo un mismo nombre.
 
 **Pseudocódigo**
 
-alumno \= REGISTRO  
+TIPO alumno \= REGISTRO  
     nombre: CADENA  
     legajo: ENTERO  
     notas\[3\]: ENTERO  
@@ -283,7 +283,7 @@ INICIO
     // sentencias  
 FINPROCEDIMIENTO
 
-INICIO PROGRAMA  
+INICIO  
     mostrar\_datos(x, y)  
 FINPROGRAMA
 
@@ -319,13 +319,4 @@ float calcular\_media(int num1, int num2) {
     float resultado;  
     resultado \= (num1 \+ num2) / 2.0;  
     return resultado;  
-}  
-
-
-[image1]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAYCAYAAAAVibZIAAABKElEQVR4Xp2QMY7CMBBFk0UcgGJXorEdJfU26ag5ABIlF4E77EW2gob7re3Y8UzmT2Ltk4Dhz5/vsZsm0MbvCVrXsOUvfc3JdbyLNpsB/SglvdQtt9ITQMaCbcfCw0O3DxPrLhCaEGbwwRTlIfh2eHT2aG0JcKaE8OM6d4GezEpLxVjzMsYc4h8R0GJNZ2r60LNz3V1YhdAAjQrp+hlrzY+19jQL24g0VO+cc7/+8xjHcV86uUpbqOOkzsIwDJ9+02ff91/cs3DjRqq598Nf/+1Dj0yVwOEC0X3Y1YfeiqKPTdCnEAtPQrh2eEfS5bcUcxV0rvvWJ2tTAsALJIl2nqjJUxC1EuAFUkTqUmHLgHbkf7umZHzASqTWqj5ZDK1Mlr5mEqsn2uYPQT0PWn/BtCwAAAAASUVORK5CYII=>
-
-[image2]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAaCAYAAACO5M0mAAABEklEQVR4XpWSOw7CMAyGm4mFsSyoxKkEF+EEnITTcI8WVsTOzM4xEBILOHH8SAoDlpy4v7/YTpWmMeay14JoRbISypyzx1j7HYgAAH0Os0vKNV23WoYQduDhjODgYheG0oaLB79H6IbAAf0VQVskQQzzhtCjBDWfIoqdgqkSk2ZPM6UxGKQczSqmvSPo42VMF47kg2fEyw0yji1IEq0IPbz3o+g1yN+QQBirhn+AfCluHluH0B/LnhOj/4jgyc5t80narNczBJ/Y/lIydChW2aJfM/Qmhzv6edG2c6F58MmDEZvMq0I9XVmpmioufKlStZbzlMqBvihz2rwarYOiPmQ6TRjpHBvjauR6oQJi6YuI9gFp5CyoNakPcQAAAABJRU5ErkJggg==>
-
-[image3]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAaCAYAAACO5M0mAAABkElEQVR4Xo1QsS5EQRR9U2xCKwpZM3dmbCGEZh+FQiS6VdFrJaKXKEgUWtGsgmSDRKPwDSqFdjs0Oo1/WOfOnTdvdi1xNzvz5txzzj0zRcGlwlptdakMUzkpLvwbU2qIHL5/iGNx0zk3Y8n2rKUnInrB955wKiVYs83mtHeuT5YOuDXXahki+w7xaeaqCmvtufe+L9kEdd7tw/2rXbYbKQOIH1A/VELegW3iP9DGrIsS2QgA9qsAMJHFRCXjIB8H2Bi9guAMdNMIxrVeBnkA8k2YAacNHsFEoUhBvBjxewGsXUNoVnYDEB8V5wU8E0e6C1Nwu3kejcZlegfFkcxSwMleBLyJNyRx7MmNY0ZjVnk08JMA/JvIDe/cG8DHyIlvSx3OjptvVZEKhD5DnlcV7AQE6RDiz3ZZNqK8YMcJNJ5xw20+a60nwxSi3USSUoU2esp7fwT3W+S6hnBHOjyBB8W91mSH1KuWnDgCCSUohuziqF9rDKEaW7vL9qePVOU1Is0cazAxxvkmbJiUP1ee+xsCo0zqc4GMcgAAAABJRU5ErkJggg==>
-
-[image4]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAaCAYAAADxNd/XAAACuElEQVR4Xr2VMYtUMRDH3ylWciiCLMKa7NtdfJbigYVY+B0s5LAQrhBREATB3k+gINhYiiBXqYWIldhZWIl+Bps79bh6/edt3maSmcnL2wN/kEv4zz/zZpIsV1UrNsJyDUp2M48XmK6hGmkgm1RWHW1EyJNdC4SwZtT0JMAKGgDbq+Xx+hGK7kHbx4oTjII0FJfCGlu71XrphOJY7ZRssAfvd1NzodmcTCbXrbUv0cA+CSdsZALiOkaPVGLzDCGMwi+h8F8YrzF+YPxeBUtyRmS92aCA5tefB4p/HzXAUG+A4h2CkR5ICAtGAdkf7+1vQELPl0ischEtrOmU0IB+Sy3GmAcw/jTW7uINnjbGPsb8BuMrYi+m0+mpdM//oG3A8BsIN48/KPIixtPxeDxHAwts+o5x1cUxn8NYIH6XbBXwJ6SFKdRIJ2Gv1kAETE/qur6C+YYrFuNWF5vP52fjBmKEbyZQR1w0RZAqp5rlE/ojOlIJRT6D+WDr8taJLgrttmvA3U5ib+lywHMP41PheB4l6UgLAqEBSmIkRXxDwW+pDu2DteZLp5URn3p4HkKFjNhjlw38jcQOaq3regTjAh3f7zQ0M2k1Y+7AexzrV2RLCyuJCRqxUdvmb+DArbNngFq3XbH0qUC76bTZbHYe845rhO5Zh2wRAv7JHY5Go5OtQBPQPPilP0LB74hUNU2zic27KPwjYg8hHaNxh1YL06mgrT04xDPGms/49r47QD/2XDOo5Vrql3KsgXAqWTSjplN6TkAia2P5ev5ramibWP4ESRMpMQoe31NYJ6uj0ZeHdU8rYVWtdBoOMGGFFtF0TrmTMPSplLmDq8xPEE60BOaPBRb2aHoxPAFXlmj6ANoUQh5BYmQ92WCHYBKkoYQUwo2V5FeNkpZCPZrffyB8Rys0Tqal1j7zD/FfabaNx8wOAAAAAElFTkSuQmCC>
+}

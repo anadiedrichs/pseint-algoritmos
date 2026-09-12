@@ -7,5 +7,5 @@ INICIO
 		SI (numero < 1 [O] numero > 100) ENTONCES
 			ESCRIBIR("Fuera de rango, ingresarlo de nuevo")
 		FINSI
-	HASTA (numero >= 1 [Y] numero <= 100)
+	HASTA QUE (numero >= 1 [Y] numero <= 100)
 FINPROGRAMA
