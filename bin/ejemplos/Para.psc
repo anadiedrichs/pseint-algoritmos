@@ -1,34 +1,22 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Recorrido y manipulacion de arreglos unidimensionales (vectores) con VARIAR
 
-// Para poder ejecutar correctamente este ejemplo debe tener
-// habilitada la sintaxis flexible en su perfil de lenguaje
+PROGRAMA RecorrerArreglo
+VAR A[10]: ENTERO
+VAR i: ENTERO
+INICIO
+	// Recorrer los 10 elementos asignandoles enteros aleatorios
+	VARIAR i DE 1 HASTA 10 PASO 1
+		A[i] = azar(100)
+	FINVARIAR
 
-{Proceso} sin_titulo	
+	ESCRIBIR("Los elementos del arreglo son:")
+	VARIAR i DE 1 HASTA 10 PASO 1
+		ESCRIBIR("Posicion ", i, ": ", A[i])
+	FINVARIAR
 
-
-	{Definir A,i,elemento Como Enteros;}
-	// declara un arreglo de 10 elementos
-	Dimension A[10]{;}
-	
-	// recorre los 10 elementos y va asignandoles enteros aleatorios
-	para cada elemento de A Hacer
-		// elemento toma el contenido de cada posicion del arreglo
-		// y si se modifica elemento se modifica el arreglo
-		elemento <- azar(100){;}
-	FinPara
-	
-	Escribir "Los elementos del arreglo son:"{;}
-	// recorre los 10 elementos utilizando subindices y los muestra en pantalla
-	para i desde {1#0} hasta {10#9} Hacer
-		escribir "Posición " i ": " A[i]{;}
-	FinPara
-	
-	Escribir ""{;} // deja una linea en blanco
-	
-	Escribir "En orden inverso:"{;}
-	// recorre los 10 elementos en orden inverso y los muestra en una misma linea
-	para i desde {10#9} hasta {1#0} Hacer
-		escribir sin bajar A[i] " "{;}
-	FinPara
-	
-{FinProceso}
+	ESCRIBIR("En orden inverso:")
+	VARIAR i DE 10 HASTA 1 PASO -1
+		ESCRIBIR("Posicion ", i, ": ", A[i])
+	FINVARIAR
+FINPROGRAMA

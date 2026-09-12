@@ -1,38 +1,37 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Descomposicion de un numero en sus factores primos
 
-{Proceso} Factorizacion
-	
-	{Definir num,div como Enteros}{;}
-	{Definir factorizar,factor_primo como Logicos}{;}
-	Escribir "Ingrese el numero: "{;}
-	Leer num{;}
-	
-	Escribir "Factorizacion: "{;}
-	
-	factorizar<-verdadero{;}
-	
-	Mientras factorizar {&} num>1 hacer
-		div<-0{;}
-		Si num/2 = trunc(num/2) Entonces
-			Escribir 2{;}
-			num<-num/2{;}
-		SiNo
-			div<-1; factor_primo<-Verdadero{;}
-			Mientras div<=rc(num) {&} factor_primo Hacer
-				div <- div+2{;}
-				Si num/div = trunc(num/div) Entonces
-					factor_primo <- Falso{;}
-				FinSi
-			FinMientras
-			Si factor_primo Entonces
-				escribir num{;}
-				factorizar<-falso{;}
-			sino
-				escribir div{;}
-				num<-num/div{;}
-				factor_primo<-verdadero{;}
-			FinSi
-		FinSi
-	FinMientras
-	
-{FinProceso}
+PROGRAMA Factorizacion
+VAR num, div: ENTERO
+VAR factorizar, factor_primo: LOGICO
+INICIO
+	ESCRIBIR("Ingrese el numero: ")
+	LEER(num)
+	ESCRIBIR("Factorizacion: ")
+	factorizar = VERDADERO
+
+	MIENTRAS (factorizar) [Y] (num > 1) HACER
+		div = 0
+		SI num MOD 2 == 0 ENTONCES
+			ESCRIBIR(2)
+			num = trunc(num / 2)
+		SINO
+			div = 1
+			factor_primo = VERDADERO
+			MIENTRAS (div <= rc(num)) [Y] (factor_primo) HACER
+				div = div + 2
+				SI num MOD div == 0 ENTONCES
+					factor_primo = FALSO
+				FINSI
+			FINMIENTRAS
+			SI factor_primo ENTONCES
+				ESCRIBIR(num)
+				factorizar = FALSO
+			SINO
+				ESCRIBIR(div)
+				num = trunc(num / div)
+				factor_primo = VERDADERO
+			FINSI
+		FINSI
+	FINMIENTRAS
+FINPROGRAMA

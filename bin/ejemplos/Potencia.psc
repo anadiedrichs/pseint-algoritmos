@@ -1,24 +1,24 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Calculo de potencia mediante funcion recursiva
 
-// Implementación del cálculo de una potencia mediante una función recursiva
-// El paso recursivo se basa en que A^B = B*(A^(B-1))
-// El paso base se base en que A^0 = 1
+PROGRAMA DosALaDiezRecursivo
 
-{SubProceso} resultado <- Potencia (base, exponente)
-    {Definir resultado como Entero}{;}
-    Si exponente=0 Entonces
-        resultado <- 1;
-    sino 
-        resultado <- base*Potencia(base,exponente-1); 
-    FinSi
-{FinSubProceso}
+FUNCION Potencia(base: ENTERO, exponente: ENTERO): ENTERO
+INICIO
+	SI exponente == 0 ENTONCES
+		Potencia = 1
+	SINO
+		Potencia = base * Potencia(base, exponente - 1)
+	FINSI
+RETORNO
 
-{Proceso} DosALaDiezRecursivo
-    {Definir exponente como Entero}{;}
-    {Definir base como Entero}{;}
-    Escribir "Ingrese Base"{;}
-    Leer base{;}
-    Escribir "Ingrese Exponente"{;}
-    Leer exponente{;}
-    Escribir "El resultado es ",Potencia(base,exponente){;}
-{FinProceso}
+VAR base, exponente, resultado: ENTERO
+
+INICIO
+	ESCRIBIR("Ingrese Base:")
+	LEER(base)
+	ESCRIBIR("Ingrese Exponente:")
+	LEER(exponente)
+	resultado = Potencia(base, exponente)
+	ESCRIBIR("El resultado es: ", resultado)
+FINPROGRAMA

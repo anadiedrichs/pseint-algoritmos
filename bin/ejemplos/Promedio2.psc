@@ -1,31 +1,32 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Subprogramas que reciben arreglos como argumento
 
-// Calcula el promedio de una lista de N datos utilizando un SubProceso
+PROGRAMA Principal
 
-{SubProceso} prom <- Promedio ( arreglo, cantidad )
-	{Definir i como Entero}{;}
-	{Definir suma como Real}{;}
-	{Definir prom como Real}{;}
-	suma <- 0{;}
-	Para i<-{1#0} Hasta cantidad{#-1} Hacer
-		suma <- suma + arreglo[i]{;}
-	FinPara
-	prom <- suma/cantidad{;}
-{FinSubProceso}
+FUNCION Promedio(arreglo[100]: REAL, cantidad: ENTERO): REAL
+VAR i: ENTERO
+VAR suma: REAL
+INICIO
+	suma = 0
+	VARIAR i DE 1 HASTA cantidad PASO 1
+		suma = suma + arreglo[i]
+	FINVARIAR
+	Promedio = suma / cantidad
+RETORNO
 
-{Proceso} Principal
+VAR i, n: ENTERO
+VAR datos[100]: REAL
+VAR prom: REAL
 
-	{Definir i,N como Entero}{;}
-	{Definir acum,datos,prom como Reales}{;}
-	Dimension datos[100]{;}
-	Escribir "Ingrese la cantidad de datos:"{;}
-	Leer n{;}
-	
-	Para i<-{1#0} Hasta n{#-1} Hacer
-		Escribir "Ingrese el dato ",i{#+1},":"{;}
-		Leer datos[i]{;}
-	FinPara
-	
-	Escribir "El promedio es: ",Promedio(datos,n){;}
-	
-{FinProceso}
+INICIO
+	ESCRIBIR("Ingrese la cantidad de datos:")
+	LEER(n)
+
+	VARIAR i DE 1 HASTA n PASO 1
+		ESCRIBIR("Ingrese el dato ", i, ":")
+		LEER(datos[i])
+	FINVARIAR
+
+	prom = Promedio(datos, n)
+	ESCRIBIR("El promedio es: ", prom)
+FINPROGRAMA

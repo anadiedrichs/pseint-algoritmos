@@ -1,54 +1,47 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Ingresa una lista de nombres, evita repetidos y la ordena alfabeticamente
 
-//   Se ingresa una lista de nombres (la lista termina
-// cuando se ingresa un nombre en blanco) no permitiendo
-// ingresar repetidos y luego se ordena y muestra
+PROGRAMA OrdenaLista
+VAR lista[200]: CADENA
+VAR nombre, aux: CADENA
+VAR se_repite: LOGICO
+VAR cant, i, j, pos_menor: ENTERO
+INICIO
+	ESCRIBIR("Ingrese los nombres (enter en blanco para terminar):")
 
-{Proceso} OrdenaLista
-	
-	{Definir nombre,lista,aux Como Cadenas}{;}
-	{Definir se_repite Como Logico}{;}
-	{Definir cant,i,j,pos_menor Como Enteros}{;}
-	Dimension lista[200]{;}
-	
-	Escribir "Ingrese los nombres (enter en blanco para terminar):"{;}
-	
 	// leer la lista
-	cant<-0{;}
-	Leer nombre{;}
-	Mientras nombre<>"" Hacer
-		{cant<-cant+1#lista[cant]<-nombre}{;}
-		{lista[cant]<-nombre#cant<-cant+1}{;}
-		Repetir // leer un nombre y ver que no este ya en la lista
-			Leer nombre{;}
-			se_repite<-Falso{;}
-			Para i<-{1#0} Hasta {cant#cant-1} Hacer
-				Si nombre=lista[i] Entonces
-					se_repite<-Verdadero{;}
-				FinSi
-			FinPara
-		Hasta Que {~} se_repite
-	FinMientras
-	
+	cant = 0
+	LEER(nombre)
+	MIENTRAS nombre <> "" HACER
+		cant = cant + 1
+		lista[cant] = nombre
+		REPETIR
+			LEER(nombre)
+			se_repite = FALSO
+			VARIAR i DE 1 HASTA cant PASO 1
+				SI nombre == lista[i] ENTONCES
+					se_repite = VERDADERO
+				FINSI
+			FINVARIAR
+		HASTA QUE [NO] se_repite
+	FINMIENTRAS
+
 	// ordenar
-	Para i<-{1#0} Hasta {cant-1#cant-2} Hacer
-		// busca el menor entre i y cant
-		pos_menor<-i{;}
-		Para j<-i+1 Hasta {cant#cant-1} Hacer
-			Si lista[j]<lista[pos_menor] Entonces
-				pos_menor<-j{;}
-			FinSi
-		FinPara
-		// intercambia el que estaba en i con el menor que encontro
-		aux<-lista[i]{;}
-		lista[i]<-lista[pos_menor]{;}
-		lista[pos_menor]<-aux{;}
-	FinPara	
-	
+	VARIAR i DE 1 HASTA cant - 1 PASO 1
+		pos_menor = i
+		VARIAR j DE i + 1 HASTA cant PASO 1
+			SI lista[j] < lista[pos_menor] ENTONCES
+				pos_menor = j
+			FINSI
+		FINVARIAR
+		aux = lista[i]
+		lista[i] = lista[pos_menor]
+		lista[pos_menor] = aux
+	FINVARIAR
+
 	// mostrar como queda la lista
-	Escribir "La lista ordenada es:"{;}
-	Para i<-{1#0} Hasta {cant#cant-1} Hacer
-		Escribir "   ",lista[i]{;}
-	FinPara
-	
-{FinProceso}
+	ESCRIBIR("La lista ordenada es:")
+	VARIAR i DE 1 HASTA cant PASO 1
+		ESCRIBIR("   ", lista[i])
+	FINVARIAR
+FINPROGRAMA

@@ -1,110 +1,112 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Expresiones, operadores y funciones matematicas integradas
 
-// Este ejemplo muestra el uso de expresiones, operadores y funciones matematicas
+PROGRAMA Matematicas
+VAR EligeSalir, EsPrimo: LOGICO
+VAR N, Nu, r: REAL
+VAR eleccion, f, Divisor: ENTERO
+INICIO
+	EligeSalir = FALSO
+	ESCRIBIR("Ingresar un numero:")
+	LEER(N)
 
-{Proceso} Matematicas
+	REPETIR
+		ESCRIBIR(" ")
+		ESCRIBIR("Elija una opcion:")
+		ESCRIBIR("  1 - Seno, coseno, arcotangente")
+		ESCRIBIR("  2 - Logaritmo natural, funcion exponencial")
+		ESCRIBIR("  3 - Truncar, redondear")
+		ESCRIBIR("  4 - Raiz cuadrada")
+		ESCRIBIR("  5 - Valor absoluto")
+		ESCRIBIR("  6 - Separar parte entera y decimal")
+		ESCRIBIR("  7 - Hallar factorial")
+		ESCRIBIR("  8 - Averiguar si es primo")
+		ESCRIBIR("  9 - Ingresar otro numero")
+		ESCRIBIR("  0 - Salir")
+		ESCRIBIR(" ")
+		LEER(eleccion)
 
-   {Definir EligeSalir,EsPrimo Como Logico}{;}
-   {Definir N,Nu,eleccion,f,r Como Numeros}{;}
-
-   EligeSalir<-Falso{;}
-   Escribir 'Ingresar un número:'{;}
-   Leer N{;}
-   Repetir
-      Escribir ' '{;}
-      Escribir 'Presione una tecla para continuar'{;}
-          Esperar Tecla{;}
-          Limpiar Pantalla{;}
-      Escribir 'Elija una opción:'{;}
-      Escribir '  1 - Seno, coseno, arcotangente'{;}
-      Escribir '  2 - Lograritmo natural, función exponencial'{;}
-      Escribir '  3 - Truncar, redondear'{;}
-      Escribir '  4 - Raíz cuadrada'{;}
-      Escribir '  5 - Valor absoluto'{;}
-      Escribir '  6 - Separar parte entera y decimal'{;}
-      Escribir '  7 - Hallar factorial'{;}
-      Escribir '  8 - Averiguar si es primo'{;}
-      Escribir '  9 - Ingresar otro número'{;}
-      Escribir '  0 - Salir'{;}
-      Escribir ' '{;}
-      Leer eleccion{;}
-      Segun eleccion Hacer
-         1: 
-            Escribir 'Seno:',Sen(N){;}
-            Escribir 'Coseno:',Cos(N){;}
-            Escribir 'Arcotangente:',Atan(N){;}
-         2: 
-            Si N<=0
-               Entonces Escribir 'El numero debe ser mayor a cero!'{;}
-            SiNo
-               Escribir 'Logaritmo natural: ',ln(N){;}
-               Escribir 'Función exponencial: ',exp(N){;}
-            FinSi
-         3: 
-            Escribir 'Truncar: ',trunc(N){;}
-            Escribir 'Redondear: ',redon(N){;}
-         4: Escribir 'Raiz Cuad.: ',rc(N){;}
-         5: Escribir 'Valor Abs.: ',abs(N){;}
-         6: 
-            Escribir 'Parte Entera: ',Trunc(n){;}
-            Escribir 'Parte Decimal: ',n-Trunc(n){;}
-         7: 
-            Si N<>Trunc(N)
-               Entonces
-                  Escribir 'El numero debe ser entero!'{;}
-               SiNo
-                  Si abs(N)>50
-                     Entonces Escribir 'Resultado muy grande!'{;}
-                     SiNo
-                        r<-1; f<-1{;}
-                        Mientras f<=abs(N) Hacer
-                           Si N<0 
-                              Entonces r<-(-f)*r{;}
-                           SiNo
-                              r<-f*r{;}
-                           FinSi
-                           f<-f+1{;}
-                        FinMientras
-                        Escribir 'Factorial:',r{;}
-                  FinSi
-            FinSi
-         8: 
-            Si N<>Trunc(N) Entonces
-               Escribir 'El numero debe ser entero!'{;}
-            SiNo
-               Si N<0  entonces 
-                  Nu<-N*(-1){;}
-               SiNo
-                  Nu<-N{;}
-               FinSi
-               Si N mod 2 = 0 Entonces 
-                  Escribir 'Numero Primo:',Nu=2{;}
-                  Si Nu<>2 Entonces
-                     Escribir N,'=2x',N/2{;}
-                  FinSi
-               SiNo
-                  EsPrimo<-Nu<>1{;} 
-                  Nu<-RC(Nu){;}
-                  Divisor<-3{;}
-                  Mientras Divisor<=Raiz(Nu) {&} EsPrimo Hacer
-                     Si N mod Divisor = 0 Entonces 
-                        EsPrimo<-Falso{;}
-                     Sino
-						Divisor<-Divisor+2{;}
-					FinSi
-                  FinMientras
-                  Escribir 'Numero primo:',EsPrimo{;}
-                  Si N>1 {&} {~} EsPrimo Entonces 
-                     Escribir N,'=',Divisor,'x',N/Divisor{;}
-                  FinSi
-               FinSi
-            FinSi
-         9:
-            Escribir 'Ingrese un número:'{;}
-            Leer N{;}
-         0: EligeSalir<-Verdadero{;}
-         De Otro Modo:
-            Escribir 'eleccionción  no válida!'{;}
-      FinSegun
-   Hasta que EligeSalir
-{FinProceso}
+		SEGUN eleccion HACER
+			1:
+				ESCRIBIR("Seno: ", sen(N))
+				ESCRIBIR("Coseno: ", cos(N))
+				ESCRIBIR("Arcotangente: ", atan(N))
+			2:
+				SI N <= 0 ENTONCES
+					ESCRIBIR("El numero debe ser mayor a cero!")
+				SINO
+					ESCRIBIR("Logaritmo natural: ", ln(N))
+					ESCRIBIR("Funcion exponencial: ", exp(N))
+				FINSI
+			3:
+				ESCRIBIR("Truncar: ", trunc(N))
+				ESCRIBIR("Redondear: ", redon(N))
+			4:
+				SI N >= 0 ENTONCES
+					ESCRIBIR("Raiz Cuadrada: ", rc(N))
+				SINO
+					ESCRIBIR("No se puede calcular la raiz de un negativo")
+				FINSI
+			5:
+				ESCRIBIR("Valor Absoluto: ", abs(N))
+			6:
+				ESCRIBIR("Parte Entera: ", trunc(N))
+				ESCRIBIR("Parte Decimal: ", N - trunc(N))
+			7:
+				SI N <> trunc(N) ENTONCES
+					ESCRIBIR("El numero debe ser entero!")
+				SINO
+					SI abs(N) > 50 ENTONCES
+						ESCRIBIR("Resultado muy grande!")
+					SINO
+						r = 1
+						f = 1
+						MIENTRAS f <= abs(N) HACER
+							SI N < 0 ENTONCES
+								r = (-f) * r
+							SINO
+								r = f * r
+							FINSI
+							f = f + 1
+						FINMIENTRAS
+						ESCRIBIR("Factorial: ", r)
+					FINSI
+				FINSI
+			8:
+				SI N <> trunc(N) ENTONCES
+					ESCRIBIR("El numero debe ser entero!")
+				SINO
+					SI N < 0 ENTONCES
+						Nu = N * (-1)
+					SINO
+						Nu = N
+					FINSI
+					SI trunc(N) MOD 2 == 0 ENTONCES
+						SI Nu == 2 ENTONCES
+							ESCRIBIR("Numero Primo: VERDADERO")
+						SINO
+							ESCRIBIR("Numero Primo: FALSO (2 x ", N / 2, ")")
+						FINSI
+					SINO
+						EsPrimo = (Nu <> 1)
+						Divisor = 3
+						MIENTRAS (Divisor <= rc(Nu)) [Y] (EsPrimo) HACER
+							SI trunc(N) MOD Divisor == 0 ENTONCES
+								EsPrimo = FALSO
+							SINO
+								Divisor = Divisor + 2
+							FINSI
+						FINMIENTRAS
+						ESCRIBIR("Numero Primo: ", EsPrimo)
+					FINSI
+				FINSI
+			9:
+				ESCRIBIR("Ingrese un numero:")
+				LEER(N)
+			0:
+				EligeSalir = VERDADERO
+			DE OTRO MODO:
+				ESCRIBIR("Opcion no valida!")
+		FINSEGUN
+	HASTA QUE EligeSalir
+FINPROGRAMA

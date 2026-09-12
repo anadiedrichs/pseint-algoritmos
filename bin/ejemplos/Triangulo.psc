@@ -1,51 +1,39 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Determina si tres lados forman un triangulo rectangulo y calcula su area
 
-//    Lee los tres lados de un triangulo rectangulo, determina 
-// si corresponden (por Pitargoras) y en caso afirmativo 
-// calcula el area
-
-{Proceso} TrianguloRectangulo
-	
-
-	// cargar datos
-	{Definir l1,l2,l3 Como Real}{;}
-	Escribir "Ingrese el lado 1:"{;}
-	Leer l1{;}
-	Escribir "Ingrese el lado 2:"{;}
-	Leer l2{;}
-	Escribir "Ingrese el lado 3:"{;}
-	Leer l3{;}
-	
-	// encontrar la hipotenusa (mayor lado)
-	{Definir cat1,cat2,hip Como Real}{;}
-	Si l1>l2 Entonces
-		cat1<-l2{;}
-		Si l1>l3 Entonces
-			hip<-l1{;}
-			cat2<-l3{;}
-		SiNo
-			hip<-l3{;}
-			cat2<-l1{;}
-		FinSi
-	SiNo
-		cat1<-l1{;}
-		Si l2>l3 Entonces
-			hip<-l2{;}
-			cat2<-l3{;}
-		SiNo
-			hip<-l3{;}
-			cat2<-l2{;}
-		FinSi
-	FinSi
-	
-	// ver si cumple con Pitagoras
-	Si hip^2 = cat1^2 + cat2^2 Entonces
-		// calcualar area
-		{Definir area como real;}
-		area<-(cat1*cat2)/2{;}
-		Escribir "El area es: ",area{;}
-	SiNo
-		Escribir "No es un triangulo rectangulo."{;}
-	FinSi
-	
-{FinProceso}
+PROGRAMA TrianguloRectangulo
+VAR l1, l2, l3: REAL
+VAR cat1, cat2, hip, area: REAL
+INICIO
+	ESCRIBIR("Ingrese el lado 1:")
+	LEER(l1)
+	ESCRIBIR("Ingrese el lado 2:")
+	LEER(l2)
+	ESCRIBIR("Ingrese el lado 3:")
+	LEER(l3)
+	SI l1 > l2 ENTONCES
+		cat1 = l2
+		SI l1 > l3 ENTONCES
+			hip = l1
+			cat2 = l3
+		SINO
+			hip = l3
+			cat2 = l1
+		FINSI
+	SINO
+		cat1 = l1
+		SI l2 > l3 ENTONCES
+			hip = l2
+			cat2 = l3
+		SINO
+			hip = l3
+			cat2 = l2
+		FINSI
+	FINSI
+	SI hip^2 == cat1^2 + cat2^2 ENTONCES
+		area = (cat1 * cat2) / 2
+		ESCRIBIR("El area es: ", area)
+	SINO
+		ESCRIBIR("No es un triangulo rectangulo.")
+	FINSI
+FINPROGRAMA

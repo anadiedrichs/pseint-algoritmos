@@ -1,14 +1,16 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Uso del operador modulo (MOD)
 
-{Proceso} Modulo
-	{Definir N,M Como Enteros}{;}
-	Escribir "Ingrese el numero: "{;}
-	Leer N{;}
-	Escribir "Ingrese el divisor: "{;}
-	Leer M{;}
-	Si N {%} M = 0 Entonces
-		Escribir M," es divisor exacto de ",N,"."{;}
-	SiNo
-		Escribir "El resto de dividir ",N," por ",M," es: ",N {%} M{;}
-	FinSi
-{FinProceso}
+PROGRAMA Modulo
+VAR N, M: ENTERO
+INICIO
+	ESCRIBIR("Ingrese el numero: ")
+	LEER(N)
+	ESCRIBIR("Ingrese el divisor: ")
+	LEER(M)
+	SI N MOD M == 0 ENTONCES
+		ESCRIBIR(M, " es divisor exacto de ", N, ".")
+	SINO
+		ESCRIBIR("El resto de dividir ", N, " por ", M, " es: ", N MOD M)
+	FINSI
+FINPROGRAMA

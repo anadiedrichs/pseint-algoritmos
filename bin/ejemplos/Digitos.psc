@@ -1,29 +1,27 @@
-"ABRA ESTOS EJEMPLOS DESDE LA AYUDA ( MENU AYUDA -> EJEMPLOS ) de otra forma no podrá ejecutarlos"
+// Catedra Algoritmos y Estructuras de Datos - UTN FRM
+// Ejemplo: Separa un numero entero en sus digitos
 
-// Separa un numero entero en sus digitos
+PROGRAMA Digitos
+VAR i, digito, pot, n, aux, cont: ENTERO
+INICIO
+	ESCRIBIR("Ingrese un numero entero positivo:")
+	LEER(n)
 
-{Proceso} Digitos
-	
-	{Definir i,digito,pot,n,aux,cont Como Enteros}{;}
-	Escribir "Ingrese un numero entero postivo:"{;}
-	Leer n{;}
-	
 	// primero, contar cuantos digitos
-	cont <- 0{;} 
-	aux <- n{;}
-	Mientras aux>0 hacer // mientras no sea cero
-		cont <- cont + 1{;} // contar cuantos digitos
-		aux <- trunc(aux/10){;} // dividir por 10 y despreciar los de
-	FinMientras
-	Escribir "El numero tiene ",cont," digitos"{;}
-	
-	// luego, mostrarlos uno por uno 
-	aux<-n{;}
-	Para i<-1 hasta cont Hacer
-		pot <- 10^(cont-i){;} // por cuanto hay que dividir para obtener el primer digito
-		digito <- trunc (aux / pot){;} // obtener el digito
-		aux <- aux - digito*pot{;} // quitar ese digito al numero
-		Escribir "El digito ",i," es ",digito{;}
-	FinPara
-	
-{FinProceso}
+	cont = 0
+	aux = n
+	MIENTRAS aux > 0 HACER
+		cont = cont + 1
+		aux = trunc(aux / 10)
+	FINMIENTRAS
+	ESCRIBIR("El numero tiene ", cont, " digitos")
+
+	// luego, mostrarlos uno por uno
+	aux = n
+	VARIAR i DE 1 HASTA cont PASO 1
+		pot = trunc(10^(cont - i))
+		digito = trunc(aux / pot)
+		aux = aux - digito * pot
+		ESCRIBIR("El digito ", i, " es ", digito)
+	FINVARIAR
+FINPROGRAMA
