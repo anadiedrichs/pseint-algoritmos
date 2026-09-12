@@ -485,7 +485,7 @@ bool SirveParaReferencia(const string &s) {
 //   FINPROGRAMA             -> FINALGORITMO
 //   INICIO                  -> (no-op, se transforma en linea vacia)
 //   VAR n1,n2: TIPO          -> Definir n1,n2 Como Tipo;
-//   VARIAR c DE a HASTA b [SALTO p]  -> Para c<-a Hasta b [Con Paso p];
+//   VARIAR c DE a HASTA b [PASO p]  -> Para c<-a Hasta b [Con Paso p];
 //   FINVARIAR                -> FinPara
 //
 // NO cubre (requieren decision de catedra, ver README del patch):
@@ -542,6 +542,8 @@ static bool EqualsNC(const string &a, const string &b) {
 	return true;
 }
 
+static set<string> g_tipos_enum;
+
 static string NormalizarTipoCatedra(string tipo) {
 	while (!tipo.empty() && (tipo[0] == ' ' || tipo[0] == '\t')) tipo.erase(0, 1);
 	while (!tipo.empty() && (tipo[tipo.size()-1] == ' ' || tipo[tipo.size()-1] == '\t' || tipo[tipo.size()-1] == ';')) tipo.erase(tipo.size()-1);
@@ -551,6 +553,7 @@ static string NormalizarTipoCatedra(string tipo) {
 	if (u == "CADENA") return "CARACTER";
 	if (u == "CAR") return "CARACTER";
 	if (u == "LOGICO") return "LOGICO";
+	if (g_tipos_enum.count(u)) return "ENTERO";
 	return tipo;
 }
 
@@ -583,6 +586,15 @@ static void NormalizarParametros(string &args) {
 		if (item.empty()) continue;
 		
 		bool por_ref = false;
+		if (LeftCompareNC(item, "PORREF ") || LeftCompareNC(item, "PORREF\t")) {
+			por_ref = true;
+			item = item.substr(6);
+			while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+		} else if (LeftCompareNC(item, "POR_REF ") || LeftCompareNC(item, "POR_REF\t")) {
+			por_ref = true;
+			item = item.substr(7);
+			while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+		}
 		if (item.find('&') != string::npos) {
 			por_ref = true;
 			ReemplazarTodos(item, "&", "");
@@ -592,6 +604,11 @@ static void NormalizarParametros(string &args) {
 		size_t p_col = item.find(':');
 		if (p_col != string::npos) {
 			item = item.substr(0, p_col);
+			while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
+		}
+		size_t p_b = item.find('[');
+		if (p_b != string::npos) {
+			item = item.substr(0, p_b);
 			while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
 		}
 		if (por_ref && !LeftCompareNC(item, "POR REFERENCIA") && item.find(" POR REFERENCIA") == string::npos && item.find(" por referencia") == string::npos) {
@@ -605,8 +622,33 @@ static void NormalizarParametros(string &args) {
 
 static map<string, string> g_constantes;
 
+struct CampoRegistro {
+	string nombre;
+	string tipo; // normalizado: ENTERO, REAL, CARACTER, LOGICO
+	string dimension; // vacio o dimension ej "3"
+};
+
+struct TipoRegistro {
+	string nombre;
+	vector<CampoRegistro> campos;
+};
+
+struct InstanciaRegistro {
+	string var_name;
+	string tipo_registro;
+	bool es_arreglo;
+	string dim_arreglo;
+};
+
+static map<string, TipoRegistro> g_registros;
+static map<string, InstanciaRegistro> g_instancias_registro;
+
 static bool EsIdentChar(char c) {
-	return EsLetra(c) || (c >= '0' && c <= '9') || c == '_';
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || (unsigned char)c >= 128;
+}
+
+static bool EsLetraId(char c) {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || (unsigned char)c >= 128;
 }
 
 static void ReemplazarIdentificador(string &s, const string &ident, const string &val) {
@@ -812,7 +854,7 @@ static void ParsearDeclaracionConstantes(const string &linea_decl) {
 
 static bool DetectarAsignacionCatedra(const string &t, string &lhs_base, string &lhs_full, string &rhs, string &op_str) {
 	if (t.empty()) return false;
-	if (!EsLetra(t[0]) && t[0] != '_') return false;
+	if (!EsLetraId(t[0])) return false;
 	
 	static const char *kw_no_asig[] = {
 		"SI", "SINO", "FINSI", "MIENTRAS", "FINMIENTRAS", "REPETIR", "HASTA",
@@ -944,6 +986,47 @@ static void PreprocesarConstantesCatedra(Programa &prog) {
 			continue;
 		}
 		
+		if (LeftCompareNC(t, "TIPO ") || LeftCompareNC(t, "TIPO\t")) {
+			size_t p_eq = t.find('=');
+			if (p_eq != string::npos) {
+				string nom_tipo = t.substr(5, p_eq - 5);
+				while (!nom_tipo.empty() && (nom_tipo[0] == ' ' || nom_tipo[0] == '\t')) nom_tipo.erase(0, 1);
+				while (!nom_tipo.empty() && (nom_tipo[nom_tipo.size()-1] == ' ' || nom_tipo[nom_tipo.size()-1] == '\t')) nom_tipo.erase(nom_tipo.size()-1);
+				
+				string resto = t.substr(p_eq + 1);
+				while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
+				
+				size_t p_op = resto.find('(');
+				size_t p_cl = resto.rfind(')');
+				if (p_op != string::npos && p_cl != string::npos && p_cl > p_op) {
+					g_tipos_enum.insert(ToUpper(nom_tipo));
+					string elems = resto.substr(p_op + 1, p_cl - p_op - 1);
+					vector<string> items = SepararComasFueraDeComillas(elems);
+					for (size_t k = 0; k < items.size(); k++) {
+						string item = items[k];
+						while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+						while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
+						if (!item.empty()) {
+							size_t p_item_eq = item.find('=');
+							if (p_item_eq != string::npos) {
+								string item_name = item.substr(0, p_item_eq);
+								string item_val = item.substr(p_item_eq + 1);
+								while (!item_name.empty() && (item_name[item_name.size()-1] == ' ' || item_name[item_name.size()-1] == '\t')) item_name.erase(item_name.size()-1);
+								while (!item_val.empty() && (item_val[0] == ' ' || item_val[0] == '\t')) item_val.erase(0, 1);
+								g_constantes[ToUpper(item_name)] = item_val;
+							} else {
+								char buf[32];
+								sprintf(buf, "%d", (int)k);
+								g_constantes[ToUpper(item)] = string(buf);
+							}
+						}
+					}
+					prog[i].instruccion = "";
+					continue;
+				}
+			}
+		}
+		
 		if (EqualsNC(t_sin_pyc, "CONST") || EqualsNC(t_sin_pyc, "CONST:")) {
 			inside_const_block = true;
 			prog[i].instruccion = "";
@@ -1014,6 +1097,565 @@ static void PreprocesarConstantesCatedra(Programa &prog) {
 }
 
 static set<string> g_catedra_funcs;
+
+static string ReescribirAccesosRegistrosEnLinea(const string &s) {
+	string res = "";
+	res.reserve(s.size() + 16);
+	bool in_str = false;
+	char quote_char = 0;
+	
+	for (size_t i = 0; i < s.size(); ) {
+		char c = s[i];
+		if (in_str) {
+			res += c;
+			if (c == quote_char) in_str = false;
+			i++;
+			continue;
+		}
+		if (c == '"' || c == '\'') {
+			in_str = true;
+			quote_char = c;
+			res += c;
+			i++;
+			continue;
+		}
+		
+		if (EsLetraId(c)) {
+			size_t start = i;
+			while (i < s.size() && EsIdentChar(s[i])) i++;
+			string ident = s.substr(start, i - start);
+			string ident_u = ToUpper(ident);
+			
+			if (g_instancias_registro.count(ident_u)) {
+				InstanciaRegistro info = g_instancias_registro[ident_u];
+				if (g_registros.count(info.tipo_registro)) {
+					TipoRegistro reg = g_registros[info.tipo_registro];
+					
+					if (info.es_arreglo) {
+						size_t k = i;
+						while (k < s.size() && (s[k] == ' ' || s[k] == '\t')) k++;
+						if (k < s.size() && s[k] == '[') {
+							int depth = 1;
+							size_t idx_start = k + 1;
+							k++;
+							while (k < s.size() && depth > 0) {
+								if (s[k] == '[') depth++;
+								else if (s[k] == ']') depth--;
+								k++;
+							}
+							if (depth == 0) {
+								string idx_str = s.substr(idx_start, k - 1 - idx_start);
+								while (k < s.size() && (s[k] == ' ' || s[k] == '\t')) k++;
+								if (k < s.size() && s[k] == '.') {
+									k++;
+									while (k < s.size() && (s[k] == ' ' || s[k] == '\t')) k++;
+									size_t fid_start = k;
+									while (k < s.size() && EsIdentChar(s[k])) k++;
+									string fid = s.substr(fid_start, k - fid_start);
+									string fid_u = ToUpper(fid);
+									bool es_campo = false;
+									for (size_t f = 0; f < reg.campos.size(); f++) {
+										if (ToUpper(reg.campos[f].nombre) == fid_u) {
+											es_campo = true;
+											break;
+										}
+									}
+									if (es_campo) {
+										size_t m = k;
+										while (m < s.size() && (s[m] == ' ' || s[m] == '\t')) m++;
+										if (m < s.size() && s[m] == '[') {
+											int d2 = 1;
+											size_t idx2_start = m + 1;
+											m++;
+											while (m < s.size() && d2 > 0) {
+												if (s[m] == '[') d2++;
+												else if (s[m] == ']') d2--;
+												m++;
+											}
+											if (d2 == 0) {
+												string idx2_str = s.substr(idx2_start, m - 1 - idx2_start);
+												res += ident + "_" + fid + "[" + idx_str + ", " + idx2_str + "]";
+												i = m;
+												continue;
+											}
+										}
+										res += ident + "_" + fid + "[" + idx_str + "]";
+										i = k;
+										continue;
+									}
+								}
+							}
+						}
+					} else {
+						size_t k = i;
+						while (k < s.size() && (s[k] == ' ' || s[k] == '\t')) k++;
+						if (k < s.size() && s[k] == '.') {
+							k++;
+							while (k < s.size() && (s[k] == ' ' || s[k] == '\t')) k++;
+							size_t fid_start = k;
+							while (k < s.size() && EsIdentChar(s[k])) k++;
+							string fid = s.substr(fid_start, k - fid_start);
+							string fid_u = ToUpper(fid);
+							bool es_campo = false;
+							for (size_t f = 0; f < reg.campos.size(); f++) {
+								if (ToUpper(reg.campos[f].nombre) == fid_u) {
+									es_campo = true;
+									break;
+								}
+							}
+							if (es_campo) {
+								res += ident + "_" + fid;
+								i = k;
+								continue;
+							}
+						}
+					}
+				}
+			}
+			res += ident;
+			continue;
+		}
+		
+		res += c;
+		i++;
+	}
+	return res;
+}
+
+static void PreprocesarRegistrosCatedra(Programa &prog) {
+	g_registros.clear();
+	g_instancias_registro.clear();
+	
+	// Paso 1: Parsear bloques REGISTRO ... FINREGISTRO
+	bool inside_reg = false;
+	TipoRegistro current_reg;
+	
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string t = s.substr(p);
+		string t_sin_pyc = t;
+		while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' ' || t_sin_pyc[t_sin_pyc.size()-1] == '\t'))
+			t_sin_pyc.erase(t_sin_pyc.size()-1);
+			
+		if (t.empty()) continue;
+		if (LeftCompare(t, "//") || LeftCompare(t, "#")) continue;
+		
+		if (inside_reg) {
+			if (EqualsNC(t_sin_pyc, "FINREGISTRO") || EqualsNC(t_sin_pyc, "FIN REGISTRO") || EqualsNC(t_sin_pyc, "FIN_REGISTRO")) {
+				g_registros[ToUpper(current_reg.nombre)] = current_reg;
+				inside_reg = false;
+				prog[i].instruccion = "";
+				continue;
+			}
+			
+			string fline = t_sin_pyc;
+			if (LeftCompareNC(fline, "VAR ") || LeftCompareNC(fline, "VAR\t")) {
+				fline = fline.substr(4);
+				while (!fline.empty() && (fline[0] == ' ' || fline[0] == '\t')) fline.erase(0, 1);
+			}
+			size_t p_col = fline.find(':');
+			if (p_col != string::npos) {
+				string fn = fline.substr(0, p_col);
+				string ft = fline.substr(p_col + 1);
+				while (!fn.empty() && (fn[fn.size()-1] == ' ' || fn[fn.size()-1] == '\t')) fn.erase(fn.size()-1);
+				while (!fn.empty() && (fn[0] == ' ' || fn[0] == '\t')) fn.erase(0, 1);
+				while (!ft.empty() && (ft[ft.size()-1] == ' ' || ft[ft.size()-1] == '\t')) ft.erase(ft.size()-1);
+				while (!ft.empty() && (ft[0] == ' ' || ft[0] == '\t')) ft.erase(0, 1);
+				
+				string dim = "";
+				size_t p_b = fn.find('[');
+				if (p_b != string::npos) {
+					size_t p_bend = fn.rfind(']');
+					if (p_bend != string::npos && p_bend > p_b) {
+						dim = fn.substr(p_b + 1, p_bend - p_b - 1);
+						fn = fn.substr(0, p_b);
+						while (!fn.empty() && (fn[fn.size()-1] == ' ' || fn[fn.size()-1] == '\t')) fn.erase(fn.size()-1);
+					}
+				}
+				
+				CampoRegistro campo;
+				campo.nombre = fn;
+				campo.tipo = NormalizarTipoCatedra(ft);
+				campo.dimension = dim;
+				current_reg.campos.push_back(campo);
+			}
+			prog[i].instruccion = "";
+			continue;
+		}
+		
+		bool es_inicio_reg = false;
+		string nom_reg = "";
+		size_t p_eq = t_sin_pyc.find('=');
+		if (p_eq != string::npos) {
+			string rhs = t_sin_pyc.substr(p_eq + 1);
+			while (!rhs.empty() && (rhs[0] == ' ' || rhs[0] == '\t')) rhs.erase(0, 1);
+			while (!rhs.empty() && (rhs[rhs.size()-1] == ' ' || rhs[rhs.size()-1] == '\t')) rhs.erase(rhs.size()-1);
+			if (EqualsNC(rhs, "REGISTRO")) {
+				string lhs = t_sin_pyc.substr(0, p_eq);
+				while (!lhs.empty() && (lhs[0] == ' ' || lhs[0] == '\t')) lhs.erase(0, 1);
+				while (!lhs.empty() && (lhs[lhs.size()-1] == ' ' || lhs[lhs.size()-1] == '\t')) lhs.erase(lhs.size()-1);
+				if (LeftCompareNC(lhs, "TIPO ") || LeftCompareNC(lhs, "TIPO\t")) {
+					lhs = lhs.substr(5);
+					while (!lhs.empty() && (lhs[0] == ' ' || lhs[0] == '\t')) lhs.erase(0, 1);
+				}
+				nom_reg = lhs;
+				es_inicio_reg = true;
+			}
+		} else if (LeftCompareNC(t_sin_pyc, "REGISTRO ") || LeftCompareNC(t_sin_pyc, "REGISTRO\t")) {
+			nom_reg = t_sin_pyc.substr(9);
+			while (!nom_reg.empty() && (nom_reg[0] == ' ' || nom_reg[0] == '\t')) nom_reg.erase(0, 1);
+			while (!nom_reg.empty() && (nom_reg[nom_reg.size()-1] == ' ' || nom_reg[nom_reg.size()-1] == '\t')) nom_reg.erase(nom_reg.size()-1);
+			es_inicio_reg = true;
+		}
+		
+		if (es_inicio_reg && !nom_reg.empty()) {
+			inside_reg = true;
+			current_reg.nombre = nom_reg;
+			current_reg.campos.clear();
+			prog[i].instruccion = "";
+			continue;
+		}
+	}
+	
+	if (g_registros.empty() && g_tipos_enum.empty()) return;
+	
+	// Paso 2: Reemplazar declaraciones VAR de registros y enums
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string indent = s.substr(0, p);
+		string t = s.substr(p);
+		string t_sin_pyc = t;
+		while (!t_sin_pyc.empty() && (t_sin_pyc[t_sin_pyc.size()-1] == ';' || t_sin_pyc[t_sin_pyc.size()-1] == ' ' || t_sin_pyc[t_sin_pyc.size()-1] == '\t'))
+			t_sin_pyc.erase(t_sin_pyc.size()-1);
+			
+		if (LeftCompareNC(t, "VAR ") || LeftCompareNC(t, "VAR\t")) {
+			size_t p_col = t_sin_pyc.rfind(':');
+			if (p_col != string::npos) {
+				string lhs = t_sin_pyc.substr(4, p_col - 4);
+				string tipo = t_sin_pyc.substr(p_col + 1);
+				while (!lhs.empty() && (lhs[0] == ' ' || lhs[0] == '\t')) lhs.erase(0, 1);
+				while (!lhs.empty() && (lhs[lhs.size()-1] == ' ' || lhs[lhs.size()-1] == '\t')) lhs.erase(lhs.size()-1);
+				while (!tipo.empty() && (tipo[0] == ' ' || tipo[0] == '\t')) tipo.erase(0, 1);
+				while (!tipo.empty() && (tipo[tipo.size()-1] == ' ' || tipo[tipo.size()-1] == '\t')) tipo.erase(tipo.size()-1);
+				string tipo_u = ToUpper(tipo);
+				
+				if (g_tipos_enum.count(tipo_u)) {
+					prog[i].instruccion = indent + "DEFINIR " + lhs + " COMO ENTERO;";
+					continue;
+				}
+				
+				if (g_registros.count(tipo_u)) {
+					TipoRegistro reg = g_registros[tipo_u];
+					vector<string> items = SepararComasFueraDeComillas(lhs);
+					string gen_defs = "";
+					for (size_t k = 0; k < items.size(); k++) {
+						string item = items[k];
+						while (!item.empty() && (item[0] == ' ' || item[0] == '\t')) item.erase(0, 1);
+						while (!item.empty() && (item[item.size()-1] == ' ' || item[item.size()-1] == '\t')) item.erase(item.size()-1);
+						if (item.empty()) continue;
+						
+						bool is_arr = false;
+						string dim = "";
+						string vname = item;
+						size_t p_b = item.find('[');
+						if (p_b != string::npos) {
+							size_t p_bend = item.rfind(']');
+							if (p_bend != string::npos && p_bend > p_b) {
+								is_arr = true;
+								dim = item.substr(p_b + 1, p_bend - p_b - 1);
+								vname = item.substr(0, p_b);
+								while (!vname.empty() && (vname[vname.size()-1] == ' ' || vname[vname.size()-1] == '\t')) vname.erase(vname.size()-1);
+							}
+						}
+						
+						InstanciaRegistro inst;
+						inst.var_name = vname;
+						inst.tipo_registro = tipo_u;
+						inst.es_arreglo = is_arr;
+						inst.dim_arreglo = dim;
+						g_instancias_registro[ToUpper(vname)] = inst;
+						
+						for (size_t c = 0; c < reg.campos.size(); c++) {
+							CampoRegistro &cr = reg.campos[c];
+							if (!is_arr) {
+								if (cr.dimension.empty()) {
+									gen_defs += "DEFINIR " + vname + "_" + cr.nombre + " COMO " + cr.tipo + "; ";
+								} else {
+									gen_defs += "DIMENSION " + vname + "_" + cr.nombre + "[" + cr.dimension + "]; DEFINIR " + vname + "_" + cr.nombre + " COMO " + cr.tipo + "; ";
+								}
+							} else {
+								if (cr.dimension.empty()) {
+									gen_defs += "DIMENSION " + vname + "_" + cr.nombre + "[" + dim + "]; DEFINIR " + vname + "_" + cr.nombre + " COMO " + cr.tipo + "; ";
+								} else {
+									gen_defs += "DIMENSION " + vname + "_" + cr.nombre + "[" + dim + ", " + cr.dimension + "]; DEFINIR " + vname + "_" + cr.nombre + " COMO " + cr.tipo + "; ";
+								}
+							}
+						}
+					}
+					prog[i].instruccion = indent + gen_defs;
+					continue;
+				}
+			}
+		}
+	}
+	
+	// Paso 3: Detectar parametros de tipo registro en PROCEDIMIENTO / FUNCION
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string indent = s.substr(0, p);
+		string t = s.substr(p);
+		
+		if (LeftCompareNC(t, "PROCEDIMIENTO ") || LeftCompareNC(t, "PROCEDIMIENTO\t") ||
+		    LeftCompareNC(t, "FUNCION ") || LeftCompareNC(t, "FUNCION\t") ||
+		    LeftCompare(t, "FUNCI\xDA ") || LeftCompare(t, "FUNCI\xDA\t") ||
+		    LeftCompare(t, "FUNCI\xC3\x9A ") || LeftCompare(t, "FUNCI\xC3\x9A\t")) {
+			size_t p_par = t.find('(');
+			size_t p_cl = t.rfind(')');
+			if (p_par != string::npos && p_cl != string::npos && p_cl > p_par) {
+				string proc_head = t.substr(0, p_par);
+				string args_str = t.substr(p_par + 1, p_cl - p_par - 1);
+				string suffix = t.substr(p_cl + 1);
+				
+				vector<string> raw_args = SepararComasFueraDeComillas(args_str);
+				vector<string> new_args;
+				for (size_t a = 0; a < raw_args.size(); a++) {
+					string arg = raw_args[a];
+					while (!arg.empty() && (arg[0] == ' ' || arg[0] == '\t')) arg.erase(0, 1);
+					while (!arg.empty() && (arg[arg.size()-1] == ' ' || arg[arg.size()-1] == '\t')) arg.erase(arg.size()-1);
+					if (arg.empty()) continue;
+					
+					size_t p_col = arg.rfind(':');
+					if (p_col != string::npos) {
+						string aname = arg.substr(0, p_col);
+						string atipo = arg.substr(p_col + 1);
+						while (!aname.empty() && (aname[aname.size()-1] == ' ' || aname[aname.size()-1] == '\t')) aname.erase(aname.size()-1);
+						while (!atipo.empty() && (atipo[0] == ' ' || atipo[0] == '\t')) atipo.erase(0, 1);
+						while (!atipo.empty() && (atipo[atipo.size()-1] == ' ' || atipo[atipo.size()-1] == '\t')) atipo.erase(atipo.size()-1);
+						
+						bool is_ref = false;
+						if (LeftCompareNC(aname, "PORREF ") || LeftCompareNC(aname, "PORREF\t")) {
+							is_ref = true;
+							aname = aname.substr(6);
+							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '\t')) aname.erase(0, 1);
+						} else if (LeftCompareNC(aname, "POR_REF ") || LeftCompareNC(aname, "POR_REF\t")) {
+							is_ref = true;
+							aname = aname.substr(7);
+							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '\t')) aname.erase(0, 1);
+						} else if (!aname.empty() && aname[0] == '&') {
+							is_ref = true;
+							aname.erase(0, 1);
+							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '\t')) aname.erase(0, 1);
+						}
+						
+						string atipo_u = ToUpper(atipo);
+						if (g_registros.count(atipo_u)) {
+							TipoRegistro reg = g_registros[atipo_u];
+							InstanciaRegistro inst;
+							inst.var_name = aname;
+							inst.tipo_registro = atipo_u;
+							inst.es_arreglo = false;
+							inst.dim_arreglo = "";
+							g_instancias_registro[ToUpper(aname)] = inst;
+							
+							for (size_t c = 0; c < reg.campos.size(); c++) {
+								string pref = is_ref ? "porRef " : "";
+								new_args.push_back(pref + aname + "_" + reg.campos[c].nombre);
+							}
+							continue;
+						}
+					}
+					new_args.push_back(arg);
+				}
+				string new_args_str = "";
+				for (size_t n = 0; n < new_args.size(); n++) {
+					if (n > 0) new_args_str += ", ";
+					new_args_str += new_args[n];
+				}
+				prog[i].instruccion = indent + proc_head + "(" + new_args_str + ")" + suffix;
+			}
+		}
+	}
+	
+	// Paso 4: Reemplazar copias de registros completos, llamadas y accesos con punto
+	for (int i = 0; i < prog.GetSize(); i++) {
+		string s = prog[i].instruccion;
+		int p = 0;
+		while (p < (int)s.size() && (s[p] == ' ' || s[p] == '\t')) p++;
+		string indent = s.substr(0, p);
+		string t = s.substr(p);
+		if (t.empty()) continue;
+		if (LeftCompare(t, "//") || LeftCompare(t, "#")) continue;
+		
+		// Chequear asignacion completa de registros: regA = regB o arrA[i] = regB
+		int pos_op = -1;
+		int len_op = 0;
+		for (size_t k = 0; k < t.size(); k++) {
+			if (k + 1 < t.size() && t[k] == '<' && t[k+1] == '-') { pos_op = (int)k; len_op = 2; break; }
+			if (k + 1 < t.size() && t[k] == ':' && t[k+1] == '=') { pos_op = (int)k; len_op = 2; break; }
+			if (t[k] == '=') {
+				if (k + 1 < t.size() && t[k+1] == '=') {}
+				else if (k > 0 && (t[k-1] == '<' || t[k-1] == '>' || t[k-1] == '!')) {}
+				else { pos_op = (int)k; len_op = 1; break; }
+			}
+		}
+		if (pos_op != -1) {
+			string lhs_raw = t.substr(0, pos_op);
+			string rhs_raw = t.substr(pos_op + len_op);
+			while (!lhs_raw.empty() && (lhs_raw[0] == ' ' || lhs_raw[0] == '\t')) lhs_raw.erase(0, 1);
+			while (!lhs_raw.empty() && (lhs_raw[lhs_raw.size()-1] == ' ' || lhs_raw[lhs_raw.size()-1] == '\t')) lhs_raw.erase(lhs_raw.size()-1);
+			while (!rhs_raw.empty() && (rhs_raw[0] == ' ' || rhs_raw[0] == '\t')) rhs_raw.erase(0, 1);
+			while (!rhs_raw.empty() && (rhs_raw[rhs_raw.size()-1] == ' ' || rhs_raw[rhs_raw.size()-1] == '\t' || rhs_raw[rhs_raw.size()-1] == ';')) rhs_raw.erase(rhs_raw.size()-1);
+			
+			if (lhs_raw.find('.') == string::npos && rhs_raw.find('.') == string::npos) {
+				string lhs_var = lhs_raw, lhs_idx = "";
+				if (!lhs_raw.empty() && lhs_raw[lhs_raw.size()-1] == ']') {
+					size_t pb = lhs_raw.find('[');
+					if (pb != string::npos) {
+						lhs_idx = lhs_raw.substr(pb + 1, lhs_raw.size() - 2 - pb);
+						lhs_var = lhs_raw.substr(0, pb);
+						while (!lhs_var.empty() && (lhs_var[lhs_var.size()-1] == ' ' || lhs_var[lhs_var.size()-1] == '\t')) lhs_var.erase(lhs_var.size()-1);
+					}
+				}
+				
+				string rhs_var = rhs_raw, rhs_idx = "";
+				if (!rhs_raw.empty() && rhs_raw[rhs_raw.size()-1] == ']') {
+					size_t pb = rhs_raw.find('[');
+					if (pb != string::npos) {
+						rhs_idx = rhs_raw.substr(pb + 1, rhs_raw.size() - 2 - pb);
+						rhs_var = rhs_raw.substr(0, pb);
+						while (!rhs_var.empty() && (rhs_var[rhs_var.size()-1] == ' ' || rhs_var[rhs_var.size()-1] == '\t')) rhs_var.erase(rhs_var.size()-1);
+					}
+				}
+				
+				string lhs_u = ToUpper(lhs_var);
+				string rhs_u = ToUpper(rhs_var);
+				if (g_instancias_registro.count(lhs_u) && g_instancias_registro.count(rhs_u)) {
+					InstanciaRegistro &info_l = g_instancias_registro[lhs_u];
+					InstanciaRegistro &info_r = g_instancias_registro[rhs_u];
+					if (info_l.tipo_registro == info_r.tipo_registro && g_registros.count(info_l.tipo_registro)) {
+						TipoRegistro &reg = g_registros[info_l.tipo_registro];
+						string copia_stmts = "";
+						for (size_t c = 0; c < reg.campos.size(); c++) {
+							CampoRegistro &cr = reg.campos[c];
+							string l_acc = lhs_var + "_" + cr.nombre + (lhs_idx.empty() ? "" : ("[" + lhs_idx + "]"));
+							string r_acc = rhs_var + "_" + cr.nombre + (rhs_idx.empty() ? "" : ("[" + rhs_idx + "]"));
+							if (cr.dimension.empty()) {
+								copia_stmts += l_acc + " = " + r_acc + "; ";
+							} else {
+								int dim_int = atoi(cr.dimension.c_str());
+								if (dim_int > 0) {
+									for (int k = 1; k <= dim_int; k++) {
+										char buf_k[32];
+										sprintf(buf_k, "%d", k);
+										string sk(buf_k);
+										if (!lhs_idx.empty() && !rhs_idx.empty()) {
+											copia_stmts += lhs_var + "_" + cr.nombre + "[" + lhs_idx + ", " + sk + "] = " + rhs_var + "_" + cr.nombre + "[" + rhs_idx + ", " + sk + "]; ";
+										} else if (!lhs_idx.empty()) {
+											copia_stmts += lhs_var + "_" + cr.nombre + "[" + lhs_idx + ", " + sk + "] = " + rhs_var + "_" + cr.nombre + "[" + sk + "]; ";
+										} else if (!rhs_idx.empty()) {
+											copia_stmts += lhs_var + "_" + cr.nombre + "[" + sk + "] = " + rhs_var + "_" + cr.nombre + "[" + rhs_idx + ", " + sk + "]; ";
+										} else {
+											copia_stmts += lhs_var + "_" + cr.nombre + "[" + sk + "] = " + rhs_var + "_" + cr.nombre + "[" + sk + "]; ";
+										}
+									}
+								}
+							}
+						}
+						prog[i].instruccion = indent + copia_stmts;
+						continue;
+					}
+				}
+			}
+		}
+		
+		// Expandir llamadas que pasen registros completos como argumentos
+		if (!LeftCompareNC(t, "SI ") && !LeftCompareNC(t, "MIENTRAS ") && !LeftCompareNC(t, "PROGRAMA ") && !LeftCompareNC(t, "SUBPROCESO ") &&
+		    !LeftCompareNC(t, "VARIAR ") && !LeftCompareNC(t, "PARA ") && !LeftCompareNC(t, "REPETIR ") && !LeftCompareNC(t, "HASTA ")) {
+			size_t p_op = t.find('(');
+			size_t p_cl = t.rfind(')');
+			if (p_op != string::npos && p_cl != string::npos && p_cl > p_op) {
+				string call_name = t.substr(0, p_op);
+				while (!call_name.empty() && (call_name[0] == ' ' || call_name[0] == '\t')) call_name.erase(0, 1);
+				while (!call_name.empty() && (call_name[call_name.size()-1] == ' ' || call_name[call_name.size()-1] == '\t')) call_name.erase(call_name.size()-1);
+				
+				if (!call_name.empty() && EsLetraId(call_name[0])) {
+					string args_str = t.substr(p_op + 1, p_cl - p_op - 1);
+					vector<string> args = SepararComasFueraDeComillas(args_str);
+					bool hubo_expansion = false;
+					vector<string> exp_args;
+					for (size_t a = 0; a < args.size(); a++) {
+						string arg = args[a];
+						while (!arg.empty() && (arg[0] == ' ' || arg[0] == '\t')) arg.erase(0, 1);
+						while (!arg.empty() && (arg[arg.size()-1] == ' ' || arg[arg.size()-1] == '\t')) arg.erase(arg.size()-1);
+						
+						// Si el argumento contiene un punto, es un acceso a campo (no un registro completo)
+						if (arg.find('.') != string::npos) {
+							exp_args.push_back(arg);
+							continue;
+						}
+						
+						string v_name = arg, v_idx = "";
+						if (!arg.empty() && arg[arg.size()-1] == ']') {
+							size_t pb = arg.find('[');
+							if (pb != string::npos) {
+								v_idx = arg.substr(pb + 1, arg.size() - 2 - pb);
+								v_name = arg.substr(0, pb);
+								while (!v_name.empty() && (v_name[v_name.size()-1] == ' ' || v_name[v_name.size()-1] == '\t')) v_name.erase(v_name.size()-1);
+							}
+						}
+						
+						bool v_name_ok = !v_name.empty() && EsLetraId(v_name[0]);
+						for (size_t vi = 1; vi < v_name.size(); vi++) {
+							if (!EsIdentChar(v_name[vi])) { v_name_ok = false; break; }
+						}
+						
+						if (v_name_ok) {
+							string v_u = ToUpper(v_name);
+							if (g_instancias_registro.count(v_u)) {
+								InstanciaRegistro &info = g_instancias_registro[v_u];
+								if (g_registros.count(info.tipo_registro)) {
+									if ((info.es_arreglo && !v_idx.empty()) || (!info.es_arreglo && v_idx.empty())) {
+										TipoRegistro &reg = g_registros[info.tipo_registro];
+										hubo_expansion = true;
+										for (size_t c = 0; c < reg.campos.size(); c++) {
+											if (!v_idx.empty()) {
+												exp_args.push_back(v_name + "_" + reg.campos[c].nombre + "[" + v_idx + "]");
+											} else {
+												exp_args.push_back(v_name + "_" + reg.campos[c].nombre);
+											}
+										}
+										continue;
+									}
+								}
+							}
+						}
+						exp_args.push_back(arg);
+					}
+					if (hubo_expansion) {
+						string new_args = "";
+						for (size_t ea = 0; ea < exp_args.size(); ea++) {
+							if (ea > 0) new_args += ", ";
+							new_args += exp_args[ea];
+						}
+						t = call_name + "(" + new_args + ")" + t.substr(p_cl + 1);
+					}
+				}
+			}
+		}
+		
+		// Reemplazar accesos a campos con punto (.): v.campo y arr[i].campo
+		string t_sub = ReescribirAccesosRegistrosEnLinea(t);
+		prog[i].instruccion = indent + t_sub;
+	}
+
+
+}
 
 static void PreprocesarSubprogramasCatedra(Programa &prog) {
 	g_catedra_funcs.clear();
@@ -1174,7 +1816,7 @@ static void PreprocesarSubprogramasCatedra(Programa &prog) {
 		if (inside_func && !current_func_name.empty()) {
 			int fn_len = (int)current_func_name.size();
 			if (LeftCompareNC(t, current_func_name)) {
-				bool es_ident = (t.size() == (size_t)fn_len || (!EsLetra(t[fn_len]) && !isdigit(t[fn_len]) && t[fn_len] != '_'));
+				bool es_ident = (t.size() == (size_t)fn_len || (!EsIdentChar(t[fn_len])));
 				if (es_ident) {
 					int k = fn_len;
 					while (k < (int)t.size() && (t[k] == ' ' || t[k] == '\t')) k++;
@@ -1405,24 +2047,47 @@ static void AplicarSinonimosCatedra(string &cadena) {
 		}
 	}
 
-	// --- VARIAR c DE a HASTA b [SALTO p]  ->  Para c<-a Hasta b [Con Paso p]; ---
-	if (LeftCompare(t, "VARIAR ")) {
-		string resto = t_sin_pyc.substr(7);
+	// --- VARIAR c DE a HASTA b [PASO p / SALTO p]  ->  Para c<-a Hasta b [Con Paso p]; ---
+	if (LeftCompare(t, "VARIAR ") || LeftCompare(t, "VARIAR\t")) {
+		string resto = (t[6] == ' ' ? t_sin_pyc.substr(7) : t_sin_pyc.substr(6));
+		while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
 		int p_de = (int)resto.find(" DE ");
+		if (p_de == -1) p_de = (int)resto.find(" DE\t");
+		if (p_de == -1) p_de = (int)resto.find("\tDE ");
+		if (p_de == -1) p_de = (int)resto.find("\tDE\t");
 		int p_hasta = (int)resto.find(" HASTA ");
+		if (p_hasta == -1) p_hasta = (int)resto.find(" HASTA\t");
+		if (p_hasta == -1) p_hasta = (int)resto.find("\tHASTA ");
+		if (p_hasta == -1) p_hasta = (int)resto.find("\tHASTA\t");
 		if (p_de != -1 && p_hasta != -1 && p_hasta > p_de) {
 			string var = resto.substr(0, p_de);
 			string ini = resto.substr(p_de + 4, p_hasta - (p_de + 4));
 			string resto2 = resto.substr(p_hasta + 7);
-			int p_salto = (int)resto2.find(" SALTO ");
+			int p_paso = (int)resto2.find(" PASO ");
+			int len_paso = 6;
+			if (p_paso == -1) { p_paso = (int)resto2.find(" PASO\t"); len_paso = 6; }
+			if (p_paso == -1) { p_paso = (int)resto2.find("\tPASO "); len_paso = 6; }
+			if (p_paso == -1) { p_paso = (int)resto2.find("\tPASO\t"); len_paso = 6; }
+			if (p_paso == -1) { p_paso = (int)resto2.find(" SALTO "); len_paso = 7; }
+			if (p_paso == -1) { p_paso = (int)resto2.find(" SALTO\t"); len_paso = 7; }
+			if (p_paso == -1) { p_paso = (int)resto2.find("\tSALTO "); len_paso = 7; }
+			if (p_paso == -1) { p_paso = (int)resto2.find("\tSALTO\t"); len_paso = 7; }
 			string fin, paso;
-			if (p_salto != -1) {
-				fin = resto2.substr(0, p_salto);
-				paso = resto2.substr(p_salto + 7);
+			if (p_paso != -1) {
+				fin = resto2.substr(0, p_paso);
+				paso = resto2.substr(p_paso + len_paso);
 			} else {
 				fin = resto2;
 				paso = "";
 			}
+			while (!var.empty() && (var[var.size()-1] == ' ' || var[var.size()-1] == '\t')) var.erase(var.size()-1);
+			while (!var.empty() && (var[0] == ' ' || var[0] == '\t')) var.erase(0, 1);
+			while (!ini.empty() && (ini[ini.size()-1] == ' ' || ini[ini.size()-1] == '\t')) ini.erase(ini.size()-1);
+			while (!ini.empty() && (ini[0] == ' ' || ini[0] == '\t')) ini.erase(0, 1);
+			while (!fin.empty() && (fin[fin.size()-1] == ' ' || fin[fin.size()-1] == '\t')) fin.erase(fin.size()-1);
+			while (!fin.empty() && (fin[0] == ' ' || fin[0] == '\t')) fin.erase(0, 1);
+			while (!paso.empty() && (paso[paso.size()-1] == ' ' || paso[paso.size()-1] == '\t')) paso.erase(paso.size()-1);
+			while (!paso.empty() && (paso[0] == ' ' || paso[0] == '\t')) paso.erase(0, 1);
 			cadena = "PARA " + var + "<-" + ini + " HASTA " + fin;
 			if (!paso.empty()) cadena += " CON PASO " + paso;
 			cadena += " HACER";
@@ -1436,14 +2101,23 @@ static void AplicarSinonimosCatedra(string &cadena) {
 		return;
 	}
 
-	// --- HASTA <condicion>  (cierre de REPETIR)  ->  HASTA QUE <condicion> ---
-	// OJO: esto es solo para el HASTA que cierra un REPETIR (la linea
-	// entera empieza con HASTA). Soporta "HASTA (cond)" y "HASTA(cond)".
-	if (LeftCompare(t, "HASTA(") || LeftCompare(t, "HASTA\t(") || (LeftCompare(t, "HASTA ") && !LeftCompare(t, "HASTA QUE "))) {
-		int pos_cond = 5;
-		while (pos_cond < (int)t.size() && (t[pos_cond] == ' ' || t[pos_cond] == '\t')) pos_cond++;
-		cadena = "HASTA QUE " + t.substr(pos_cond);
-		return;
+	// --- Normalizar HASTA QUE [espacios] (condicion) para REPETIR ---
+	// Tolera 0, 1 o multiples espacios o tabs entre HASTA, QUE y la condicion/parentesis
+	if (LeftCompareNC(t, "HASTA ") || LeftCompareNC(t, "HASTA\t") || LeftCompareNC(t, "HASTA(")) {
+		size_t pos = 5;
+		while (pos < t.size() && (t[pos] == ' ' || t[pos] == '\t')) pos++;
+		if (pos + 3 <= t.size() && (t.substr(pos, 3) == "QUE" || t.substr(pos, 3) == "que" || t.substr(pos, 3) == "Que")) {
+			pos += 3;
+			while (pos < t.size() && (t[pos] == ' ' || t[pos] == '\t')) pos++;
+			string cond = t.substr(pos);
+			cadena = "HASTA QUE " + cond;
+			return;
+		} else {
+			// Soporte por compatibilidad si omiten QUE
+			string cond = t.substr(pos);
+			cadena = "HASTA QUE " + cond;
+			return;
+		}
 	}
 
 	// --- SEGÚN CASO (var) [HACER]  ->  SEGUN var HACER ---
@@ -2582,6 +3256,7 @@ int SynCheck() {
 	int errores=0;
 	
 	PreprocesarConstantesCatedra(programa);
+	PreprocesarRegistrosCatedra(programa);
 	PreprocesarSubprogramasCatedra(programa);
 	
 	if (case_map) for(int i=0;i<programa.GetSize();i++) CaseMapFill(programa[i].instruccion);

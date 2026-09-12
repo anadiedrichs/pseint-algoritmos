@@ -269,7 +269,8 @@ static const char *mxSourceWords1 =
 	"caracter carácter caracteres texto cadena cadenas "
 	"logico lógico logica lógica logicos lógicos logicas lógicas "
 	"borrar limpiar pantalla borrarpantalla limpiarpantalla esperar tecla esperartecla segundos milisegundos segundo milisegundo sinsaltar sin saltar sinbajar bajar "
-	"según finsegún dimensión ";
+	"según finsegún dimensión "
+	"programa finprograma inicio variar finvariar const car tipo registro finregistro paso ";
 
 static const char *mxSourceWords1_op =
 	"y no o mod ";
@@ -281,7 +282,8 @@ static const char *mxSourceWords1_conds =
 	"es par impar igual divisible multiplo distinto distinta de por cero positivo negativo negativa positiva entero mayor menor ";
 
 static const char *mxSourceWords1_funcs =
-	"subproceso finsubproceso función funcion finfunción finfuncion por referencia valor copia subalgoritmo finsubalgoritmo ";
+	"subproceso finsubproceso función funcion finfunción finfuncion por referencia valor copia subalgoritmo finsubalgoritmo "
+	"procedimiento finprocedimiento porref retorno ";
 
 static const char* mxSourceWords2_math =
 	"cos sen tan acos asen atan raiz rc ln abs exp aleatorio azar trunc redon pi euler ";
