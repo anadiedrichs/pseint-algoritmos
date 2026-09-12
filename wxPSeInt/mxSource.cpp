@@ -1065,7 +1065,8 @@ bool mxSource::IndentLine(int l, bool goup) {
 		else if (fword=="MIENTRAS" && we+4<len && line.SubString(ws,we+4).Upper()=="MIENTRAS QUE ") cur-=4;
 		else if (fword=="FINSEGUN"||fword==_Z("FINSEGÚN")) cur-=8;
 		else if (fword=="FINMIENTRAS") cur-=4;
-		else if (fword=="FINPARA") cur-=4;
+		else if (fword=="FINPARA"||fword=="FINVARIAR") cur-=4;
+		else if (fword=="FINREGISTRO") cur-=4;
 		else if (fword=="FIN") { 
 			cur-=4;
 			ws = SkipWhite(line,we,len);
@@ -1073,10 +1074,11 @@ bool mxSource::IndentLine(int l, bool goup) {
 			fword = line.Mid(ws,we-ws);
 			MakeUpper(fword);
 			if (fword=="SEGUN"||fword==_Z("SEGÚN")) cur-=4;
+			else if (fword=="PROGRAMA"||fword=="PROCEDIMIENTO") cur=0;
 		}
 		else if (fword=="FINSI") cur-=4;
-		else if (fword=="FINPROCESO"||fword=="FINALGORITMO") cur=0;
-		else if (fword=="FINSUBPROCESO"||fword=="FINFUNCION"||fword=="FINSUBALGORITMO"||fword==_Z("FINFUNCIÓN")) cur=0;
+		else if (fword=="FINPROCESO"||fword=="FINALGORITMO"||fword=="FINPROGRAMA") cur=0;
+		else if (fword=="FINSUBPROCESO"||fword=="FINFUNCION"||fword=="FINSUBALGORITMO"||fword==_Z("FINFUNCIÓN")||fword=="FINPROCEDIMIENTO"||fword=="RETORNO") cur=0;
 		else {
 			ws = we;
 			while (ws<len) {
@@ -1137,15 +1139,19 @@ int mxSource::GetIndentLevel(int l, bool goup, int &e_btype, bool diff_proc_sub_
 						else if (word=="SINO") { cur+=4; e_btype=BT_SINO; }
 						else if (word=="PROCESO") { cur+=4; e_btype=BT_PROCESO; }
 						else if (word=="ALGORITMO") { cur+=4; e_btype=diff_proc_sub_func?BT_ALGORITMO:BT_PROCESO; }
+						else if (word=="PROGRAMA") { cur+=4; e_btype=diff_proc_sub_func?BT_PROGRAMA:BT_PROCESO; }
 						else if (word=="FUNCION"||word==_Z("FUNCIÓN")) { cur+=4; e_btype=diff_proc_sub_func?BT_FUNCION:BT_PROCESO; }
 						else if (word=="SUBPROCESO") { cur+=4; e_btype=diff_proc_sub_func?BT_SUBPROCESO:BT_PROCESO; }
 						else if (word=="SUBALGORITMO") { cur+=4; e_btype=diff_proc_sub_func?BT_SUBALGORITMO:BT_PROCESO; }
+						else if (word=="PROCEDIMIENTO") { cur+=4; e_btype=diff_proc_sub_func?BT_PROCEDIMIENTO:BT_SUBPROCESO; }
 						else if (word=="MIENTRAS" && !(i+4<n && line.SubString(wstart,i+4).Upper()=="MIENTRAS QUE ")) { cur+=4; e_btype=BT_MIENTRAS; }
 						else if (word=="SEGUN"||word==_Z("SEGÚN")) { cur+=8; e_btype=BT_SEGUN; }
 						else if (word=="PARA") { cur+=4; e_btype=BT_PARA;	}
+						else if (word=="VARIAR") { cur+=4; e_btype=diff_proc_sub_func?BT_VARIAR:BT_PARA; }
+						else if (word=="REGISTRO") { cur+=4; e_btype=diff_proc_sub_func?BT_REGISTRO:BT_PARA; }
 						else if (word=="REPETIR"||(first_word && word=="HACER")) { cur+=4; e_btype=BT_REPETIR; }
 						else if (word=="FIN") { ignore_next=true; e_btype=BT_NONE; }
-						else if (e_btype!=BT_NONE && (word=="FINSEGUN"||word==_Z("FINSEGÚN")||word=="FINPARA"||word=="FINMIENTRAS"||word=="FINSI"||word=="MIENTRAS"||word=="FINPROCESO"||word=="FINALGORITMO"||word=="FINSUBALGORITMO"||word=="FINSUBPROCESO"||word=="FINFUNCION"||word==_Z("FINFUNCIÓN"))) {
+						else if (e_btype!=BT_NONE && (word=="FINSEGUN"||word==_Z("FINSEGÚN")||word=="FINPARA"||word=="FINMIENTRAS"||word=="FINSI"||word=="MIENTRAS"||word=="FINPROCESO"||word=="FINALGORITMO"||word=="FINSUBALGORITMO"||word=="FINSUBPROCESO"||word=="FINFUNCION"||word==_Z("FINFUNCIÓN")||word=="FINPROGRAMA"||word=="FINVARIAR"||word=="FINPROCEDIMIENTO"||word=="RETORNO"||word=="FINREGISTRO")) {
 							if (e_btype==BT_SEGUN) cur-=4;
 							e_btype=BT_NONE; cur-=4;
 						}
@@ -1248,6 +1254,20 @@ void mxSource::SetAutocompletion() {
 	comp_list.clear();
 	
 	comp_list.push_back(comp_list_item("Proceso","Proceso ",""));
+	comp_list.push_back(comp_list_item("Programa","Programa ",""));
+	comp_list.push_back(comp_list_item("FinPrograma","FinPrograma\n",""));
+	comp_list.push_back(comp_list_item("Inicio","Inicio\n",""));
+	comp_list.push_back(comp_list_item("Variar","Variar ",""));
+	comp_list.push_back(comp_list_item("FinVariar","FinVariar\n",""));
+	comp_list.push_back(comp_list_item("Paso","Paso ","Variar"));
+	comp_list.push_back(comp_list_item("Procedimiento","Procedimiento ",""));
+	comp_list.push_back(comp_list_item("FinProcedimiento","FinProcedimiento\n",""));
+	comp_list.push_back(comp_list_item("porRef","porRef ",""));
+	comp_list.push_back(comp_list_item("Retorno","Retorno\n",""));
+	comp_list.push_back(comp_list_item("Const","Const ",""));
+	comp_list.push_back(comp_list_item("Tipo","Tipo ",""));
+	comp_list.push_back(comp_list_item("Registro","Registro\n","Tipo"));
+	comp_list.push_back(comp_list_item("FinRegistro","FinRegistro\n",""));
 	if (cfg_lang[LS_ENABLE_USER_FUNCTIONS]) {
 		comp_list.push_back(comp_list_item("Algoritmo","Algoritmo ",""));
 		comp_list.push_back(comp_list_item("Funcion","Funcion ",""));
@@ -1766,6 +1786,22 @@ void mxSource::TryToAutoCloseSomething (int l) {
 	} else if (btype==BT_SEGUN) {
 		if (sl2.StartsWith("FINSEG") || sl2.StartsWith("FIN SEG")) return;
 		InsertText(PositionFromLine(l+1),"FinSegun\n");
+		IndentLine(l+1,true); StyleLine(l+1);
+	} else if (btype==BT_PROGRAMA) {
+		if (sl2.StartsWith("FINPROGRAMA") || sl2.StartsWith("FIN PROGRAMA")) return;
+		InsertText(PositionFromLine(l+1),"FinPrograma\n");
+		IndentLine(l+1,true); StyleLine(l+1);
+	} else if (btype==BT_PROCEDIMIENTO) {
+		if (sl2.StartsWith("FINPROCEDIMIENTO") || sl2.StartsWith("FIN PROCEDIMIENTO")) return;
+		InsertText(PositionFromLine(l+1),"FinProcedimiento\n");
+		IndentLine(l+1,true); StyleLine(l+1);
+	} else if (btype==BT_VARIAR) {
+		if (sl2.StartsWith("FINVARIAR") || sl2.StartsWith("FIN VARIAR")) return;
+		InsertText(PositionFromLine(l+1),"FinVariar\n");
+		IndentLine(l+1,true); StyleLine(l+1);
+	} else if (btype==BT_REGISTRO) {
+		if (sl2.StartsWith("FINREGISTRO") || sl2.StartsWith("FIN REGISTRO")) return;
+		InsertText(PositionFromLine(l+1),"FinRegistro\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	}
 }
@@ -2477,13 +2513,13 @@ void mxSource::StyleLine(int line) {
 			if (nesting==0) ++word_count;
 			while (++p<pN and EsLetra(text[p],true));
 			wxString word = text.SubString(p0,p-1); word.MakeUpper();
-			if (word=="FUNCION" or word=="SUBPROCESO" or word=="SUBALGORITMO") 
+			if (word=="FUNCION" or word=="SUBPROCESO" or word=="SUBALGORITMO" or word=="PROCEDIMIENTO") 
 				function_count = 1;
 			MySetStyle(p0,p,
 					   m_keywords.Index(word)!=wxNOT_FOUND ? wxSTC_C_WORD : (
 							m_functions.Index(word)!=wxNOT_FOUND ? wxSTC_C_WORD2 : (
 								(word==m_selected_variable and line>=m_selected_variable_line_from and line<=m_selected_variable_line_to) ? wxSTC_C_GLOBALCLASS : wxSTC_C_IDENTIFIER ) ) );
-			if (word=="ENTONCES" or word=="HACER" or word=="SINO" or word=="PARA") word_count = 0;
+			if (word=="ENTONCES" or word=="HACER" or word=="SINO" or word=="PARA" or word=="VARIAR") word_count = 0;
 		} else if (EsNumero(c,true)) {
 			while (++p<pN and EsNumero(text[p],true));
 			MySetStyle(p0,p,wxSTC_C_NUMBER);
