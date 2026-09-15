@@ -32,7 +32,8 @@ mxVarWindow::mxVarWindow(wxWindow *parent):wxPanel(parent,wxID_ANY,wxDefaultPosi
 	wxSizer *sizer=new wxBoxSizer(wxVERTICAL);
 	tree = new wxTreeCtrl(this,wxID_ANY,wxDefaultPosition,wxSize(150,50),wxTR_FULL_ROW_HIGHLIGHT|wxTR_NO_LINES|wxTR_HIDE_ROOT|wxTR_SINGLE|wxTR_NO_BUTTONS/*|wxTR_ROW_LINES*/);
 	
-	wxArrayString img_files(LV_MAX+2,""); // +2 por proc y sub
+	wxArrayString img_files;
+	img_files.SetCount(LV_MAX+2); // +2 por proc y sub
 	// tipos conocidos
 	img_files[             LV_LOGICA                        ] = "log.png";
 	img_files[LV_DEFINIDA| LV_LOGICA                        ] = "log_def.png";
