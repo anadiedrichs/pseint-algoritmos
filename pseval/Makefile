@@ -15,6 +15,7 @@ clean:
 	${RM} ${OBJS} ../${BIN}/pseval${EXT} ${ICON}
 
 ../${BIN}/pseval${EXT}: ${OBJS} ${ICON}
+	${MKDIR} ../${BIN}
 	${GPP} ${OBJS} ${LDFLAGS} ${ICON} -o $@
 
 ${OBJS_DIR}:

@@ -10,6 +10,7 @@ clean:
 	${RM} ${OBJS} ../${BIN}/psexport${EXT}
 
 ../${BIN}/psexport${EXT}: ${OBJS}
+	${MKDIR} ../${BIN}
 	${GPP} ${OBJS} ${LDFLAGS} -o $@
 
 ${OBJS_DIR}:

@@ -40,6 +40,7 @@ clean:
 	${RM} ${OBJS} ../${BIN}/wxPSeInt{EXT} ${EXTRA_BINS} ${ICON}
 
 ../${BIN}/wxPSeInt${EXT}: ${OBJS} ${ICON}
+	${MKDIR} ../${BIN}
 	${GPP} ${OBJS} ${LDFLAGS} ${ICON} -o $@
 
 ${OBJS_DIR}:

@@ -17,6 +17,7 @@ clean:
 	${RM} ${OBJS} ../${BIN}/psdraw3${EXT} ${ICON}
 
 ../${BIN}/psdraw3${EXT}: ${OBJS} ${ICON}
+	${MKDIR} ../${BIN}
 	${GPP} ${OBJS} ${LDFLAGS} ${ICON} -o $@
 
 ${OBJS_DIR}:

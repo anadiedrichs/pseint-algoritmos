@@ -1,6 +1,7 @@
 ifdef ARCH
 
 all: 
+	mkdir -p bin/bin temp
 	${MAKE} -C pseint   -f Makefile ARCH=${ARCH}
 	${MAKE} -C psexport -f Makefile ARCH=${ARCH}
 	${MAKE} -C hoewrap  -f Makefile ARCH=${ARCH}

@@ -19,7 +19,7 @@ LDFLAGS=-s
 
 WX_DIR=$(shell wx-config --prefix)
 WX_CXXFLAGS=$(shell wx-config --cppflags --unicode=yes) -DWX3
-WX_LDFLAGS=$(shell wx-config --libs std,stc,aui) -lwsock32
+WX_LDFLAGS=$(shell wx-config --libs std,stc,aui) -lwsock32 -mwindows
 
-GL_CXXFLAGS=$(shell wx-config --gl_libs --cppflags --unicode=yes)
+GL_CXXFLAGS=$(shell wx-config --cflags)
 GL_LDFLAGS=$(shell wx-config --libs gl) -lopengl32 -lglu32

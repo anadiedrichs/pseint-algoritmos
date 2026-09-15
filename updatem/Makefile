@@ -12,6 +12,7 @@ clean:
 	rm -rf ${OBJS} ../${BIN}/updatem${EXT}
 
 ../${BIN}/updatem${EXT}: ${OBJS}
+	mkdir -p ../${BIN}
 	${GPP} ${OBJS} ${LDFLAGS} -o $@
 
 ${OBJS_DIR}:

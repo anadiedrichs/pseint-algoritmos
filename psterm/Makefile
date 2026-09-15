@@ -17,6 +17,7 @@ clean:
 	rm -rf ${OBJS} ../${BIN}/psterm${EXT} ${ICON}
 
 ../${BIN}/psterm${EXT}: ${OBJS} ${ICON}
+	mkdir -p ../${BIN}
 	${GPP} ${OBJS} ${LDFLAGS} ${ICON} -o $@
 
 ${OBJS_DIR}:

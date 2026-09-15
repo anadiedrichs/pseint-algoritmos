@@ -29,6 +29,7 @@ jobs:
 
       - name: Compilar PSeInt nativo (Linux)
         run: |
+          mkdir -p bin/bin temp
           make ARCH=lnx -j$(nproc)
 
       - name: Ejecutar verificación sintáctica de ejemplos
@@ -80,6 +81,7 @@ jobs:
           msystem: MINGW64
           update: true
           install: >-
+            make
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-wxwidgets3.2
             mingw-w64-x86_64-make
@@ -87,7 +89,13 @@ jobs:
 
       - name: Compilar PSeInt con MSYS2 MinGW64
         run: |
-          make ARCH=msys2 -j2
+          mkdir -p bin temp
+          if command -v mingw32-make &>/dev/null; then
+            MAKE_CMD="mingw32-make"
+          else
+            MAKE_CMD="make"
+          fi
+          $MAKE_CMD ARCH=msys2 -j2
 
       - name: Empaquetar versión portable Windows
         run: |

@@ -17,6 +17,7 @@ clean:
 	${RM} ${OBJS} ../${BIN}/pseint${EXT}
 
 ../${BIN}/pseint${EXT}: ${OBJS}
+	${MKDIR} ../${BIN}
 	${GPP} ${OBJS} ${LDFLAGS} -o $@
 
 ${OBJS_DIR}:
