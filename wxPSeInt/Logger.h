@@ -2,6 +2,7 @@
 #define LOGGER_H
 #include <string>
 #include <fstream>
+#include <cstdint>
 using namespace std;
 
 class Logger {
@@ -15,7 +16,7 @@ public:
 	~Logger();
 };
 
-inline wxString &operator<<(wxString &s, void *p) { return s<<reinterpret_cast<unsigned long>(p); }
+inline wxString &operator<<(wxString &s, void *p) { return s<<reinterpret_cast<uintptr_t>(p); }
 
 extern Logger *logger;
 #ifdef DEBUG
