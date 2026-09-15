@@ -46,7 +46,7 @@ ConfigManager::ConfigManager(wxString apath) : lang(LS_INIT) {
 	
 	lang.Log();
 	
-	er_init(temp_dir);
+	er_init(_W2S(temp_dir));
 }
 
 void ConfigManager::LoadDefaults() {

@@ -2364,7 +2364,7 @@ bool mxSource::LoadFile (const wxString & fname) {
 
 static void FixExtraUnicode_impl(wxString &s, int i0, int iN) {
 	static wxCSConv cs("ISO-8859-1");
-	const auto data = cs.cWX2MB(s.Mid(i0,iN-i0));
+	const auto data = s.Mid(i0,iN-i0).mb_str(cs);
 	if (data) return; // al chars ok
 	if (iN-i0==1) { // found the wrong character
 		s = s.Mid(0,i0) + "?" + s.Mid(iN);
@@ -2382,7 +2382,7 @@ bool mxSource::SaveFile (const wxString & fname) {
 	ConvertEOLs(mxSTC_MY_EOL_MODE); // por alguna razon el copy-paste en mac solo pone CR pero no LF?
 	auto s = GetText(); ToRegularOpers(s); FixExtraUnicode(s);
 	static wxCSConv cs("ISO-8859-1");
-	const auto data = cs.cWX2MB(s);
+	const auto data = s.mb_str(cs);
 	bool write_ok = data;
 	if (data) {
 		wxFFile file(fname,_T("w"));
