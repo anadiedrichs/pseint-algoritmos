@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <cstdint>
+#include <wx/string.h>
 using namespace std;
 
 class Logger {
@@ -11,6 +12,7 @@ private:
 protected:
 public:
 	Logger(const char *where);
+	Logger(const wxString &where);
 	void Write(const wxString &s);
 	static void DumpVersions();
 	~Logger();
