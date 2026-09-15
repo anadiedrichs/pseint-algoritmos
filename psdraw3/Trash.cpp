@@ -20,7 +20,7 @@ void Trash::Draw ( ) {
 	if (!m_size) return;
 	
 	if (m_extended) {
-		DrawTextRaster(g_colors.status,10+trash_size_max,10,_Z("Eliminar"));
+		DrawTextRaster(g_colors.status,10+trash_size_max,10,"Eliminar");
 		mouse_cursor = Z_CURSOR_DESTROY;
 	}
 	

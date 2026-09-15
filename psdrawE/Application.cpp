@@ -160,7 +160,7 @@ bool mxApplication::OnInit() {
 	_IF_PNG(if (fout.Lower().EndsWith(".png")) type=wxBITMAP_TYPE_PNG;)
 	_IF_JPG(else if (fout.Lower().EndsWith(".jpg")||fout.Lower().EndsWith(".jpeg")) type=wxBITMAP_TYPE_JPEG;)
 	if (bmp.SaveFile(fout,type)) {
-		if (force) cerr << _Z("Guardado: ")<<fout<<endl;
+		if (force) cerr << "Guardado: " << fout.mb_str() << endl;
 		else wxMessageBox(_Z("Diagrama guardado"),_Z("PSeInt"));
 	}
 	
