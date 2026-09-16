@@ -56,6 +56,7 @@ jobs:
           cp -r bin/* dist/pseint-linux/
           touch dist/pseint-linux/config.here
           rm -f dist/pseint-linux/*.exe
+          rm -f dist/pseint-linux/README_install_windows.txt
           cd dist
           tar -czf pseint-utn-frm-ayed-linux-x64.tar.gz pseint-linux
 
@@ -103,9 +104,9 @@ jobs:
           cp -r bin/* dist/pseint-windows/
           touch dist/pseint-windows/config.here
 
-          # Limpiar carpeta auxiliar de binarios de Linux y archivos no necesarios
+          # Limpiar carpeta auxiliar de binarios de Linux y archivo README de Linux
           rm -rf dist/pseint-windows/bin
-          rm -f dist/pseint-windows/linux.txt
+          rm -f dist/pseint-windows/README_install_linux.txt
 
           # Crear copia de conveniencia PSeInt.exe apuntando a wxPSeInt.exe
           if [ -f "dist/pseint-windows/wxPSeInt.exe" ]; then
