@@ -103,9 +103,14 @@ jobs:
           cp -r bin/* dist/pseint-windows/
           touch dist/pseint-windows/config.here
 
-          # Limpiar lanzadores de Linux
+          # Limpiar carpeta auxiliar de binarios de Linux y archivos no necesarios
           rm -rf dist/pseint-windows/bin
-          rm -f dist/pseint-windows/pseint dist/pseint-windows/wxPSeInt
+          rm -f dist/pseint-windows/linux.txt
+
+          # Crear copia de conveniencia PSeInt.exe apuntando a wxPSeInt.exe
+          if [ -f "dist/pseint-windows/wxPSeInt.exe" ]; then
+            cp dist/pseint-windows/wxPSeInt.exe dist/pseint-windows/PSeInt.exe
+          fi
 
           # Copiar DLLs requeridas por los ejecutables
           ldd dist/pseint-windows/*.exe 2>/dev/null | grep -i '/mingw64/bin/' | awk '{print $3}' | sort -u | while read dll; do
@@ -119,6 +124,9 @@ jobs:
           cp /mingw64/bin/libstdc++-6.dll dist/pseint-windows/ 2>/dev/null || true
           cp /mingw64/bin/libgcc_s_seh-1.dll dist/pseint-windows/ 2>/dev/null || true
           cp /mingw64/bin/libwinpthread-1.dll dist/pseint-windows/ 2>/dev/null || true
+
+          echo "=== Contenido de ejecutables en el paquete Windows ==="
+          ls -la dist/pseint-windows/*.exe
 
           cd dist
           zip -r pseint-utn-frm-ayed-windows-x64.zip pseint-windows
