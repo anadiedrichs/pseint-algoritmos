@@ -108,8 +108,7 @@ jobs:
           rm -rf dist/pseint-windows/bin
           rm -f dist/pseint-windows/README_install_linux.txt
 
-          # Evitar colisión de nombres con pseint.exe (intérprete CLI) en sistemas de archivo case-insensitive
-          rm -f dist/pseint-windows/PSeInt.exe
+          # Crear script lanzador auxiliar para facilitar el inicio
           echo '@start "" "%~dp0wxPSeInt.exe" %*' > dist/pseint-windows/Iniciar_PSeInt.bat
 
           # Copiar DLLs requeridas por los ejecutables
