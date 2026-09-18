@@ -78,7 +78,7 @@ void mxBacktrace::SetText ( ) {
 			else text += _T("&nbsp;<FONT size=\"+1\">\u21d2</FONT>&nbsp;");
 		}
 		text += m_procs[i].first;
-		if (i+1<m_procs.size()) text += _T(" (\u23f8 linea ") + std::to_string(m_procs[i].second) + ")";
+		if (i+1<m_procs.size()) text += wxString::Format(_T(" (\u23f8 linea %d)"), m_procs[i].second);
 		else text += m_about_to_pop ? _T(" ( \u2716 )") : _T(" (\u23f5)");
 		text += "</FONT>";
 		
