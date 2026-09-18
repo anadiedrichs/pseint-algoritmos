@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PSeInt - Cátedra UTN-FRM-AyED</title>
+  <meta name="description" content="Distribución oficial de PSeInt para la cátedra Algoritmos y Estructuras de Datos - UTN FRM">
+  <style>
+    :root {
+      --primary: #0969da;
+      --primary-hover: #0757b3;
+      --success: #1f883d;
+      --success-hover: #1a7434;
+      --text: #1f2328;
+      --text-muted: #656d76;
+      --border: #d0d7de;
+      --bg: #f6f8fa;
+      --card-bg: #ffffff;
+      --code-bg: #f3f4f6;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: var(--bg);
+      margin: 0;
+      padding: 24px 16px;
+    }
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 40px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+    }
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 2rem;
+      color: #0d1117;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #ddf4ff;
+      color: #0969da;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #b6e3ff;
+      vertical-align: middle;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin: 32px 0 16px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eaeef2;
+      color: #0d1117;
+    }
+    /* Tabla de descargas */
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      text-align: left;
+    }
+    th {
+      background-color: #f6f8fa;
+      font-weight: 600;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #ffffff !important;
+      background-color: var(--success);
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background-color 0.15s ease;
+    }
+    .btn:hover {
+      background-color: var(--success-hover);
+    }
+    .size-badge {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: normal;
+      margin-left: 4px;
+    }
+    .release-info {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+    .release-info a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .release-info a:hover {
+      text-decoration: underline;
+    }
+    /* Tarjeta de Material */
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin: 16px 0;
+    }
+    .card h3 {
+      margin: 0 0 8px 0;
+      font-size: 1.15rem;
+    }
+    .card p {
+      margin: 0 0 12px 0;
+      color: var(--text-muted);
+    }
+    .card-link {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .card-link:hover {
+      text-decoration: underline;
+    }
+    /* FAQ Accordion */
+    details {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: #ffffff;
+      transition: border-color 0.2s ease;
+    }
+    details[open] {
+      border-color: #0969da;
+    }
+    summary {
+      padding: 14px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      background-color: #fafbfc;
+      border-radius: 7px;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    summary::after {
+      content: "＋";
+      font-size: 1.1rem;
+      color: var(--primary);
+      font-weight: bold;
+    }
+    details[open] summary {
+      border-bottom: 1px solid var(--border);
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      background-color: #f3f8fe;
+    }
+    details[open] summary::after {
+      content: "−";
+    }
+    .faq-content {
+      padding: 16px 20px;
+      font-size: 0.98rem;
+    }
+    .faq-content p:first-child {
+      margin-top: 0;
+    }
+    .faq-content p:last-child {
+      margin-bottom: 0;
+    }
+    .faq-content ul, .faq-content ol {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+    .faq-content li {
+      margin-bottom: 6px;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.88em;
+      background-color: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+    }
+    pre {
+      background-color: #1e293b;
+      color: #f8fafc;
+      padding: 14px 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    pre code {
+      background: transparent;
+      border: none;
+      color: inherit;
+      padding: 0;
+    }
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        <span>PSeInt</span>
+        <span class="badge">UTN-FRM-AyED</span>
+      </h1>
+      <p class="subtitle">
+        Distribución oficial adaptada para la cátedra de <strong>Algoritmos y Estructuras de Datos</strong> de la <strong>Universidad Tecnológica Nacional – Facultad Regional Mendoza</strong>.
+      </p>
+    </header>
+
+    <section id="descargas">
+      <h2>📦 Descargas Oficiales</h2>
+      <div class="release-info">
+        Versión actual: <strong id="latest-version">v2026.09.18</strong> <span id="latest-date"></span>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Sistema Operativo</th>
+              <th>Paquete Portable</th>
+              <th>Instrucciones rápidas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Microsoft Windows</strong> (x64)</td>
+              <td>
+                <a class="btn" href="https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-windows-x64.zip">
+                  📥 Descargar (.zip)
+                </a>
+                <span class="size-badge" id="size-windows"></span>
+              </td>
+              <td>Descomprimir y ejecutar <code>PSeInt.exe</code></td>
+            </tr>
+            <tr>
+              <td><strong>GNU/Linux</strong> (x64)</td>
+              <td>
+                <a class="btn" href="https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-linux-x64.tar.gz">
+                  📥 Descargar (.tar.gz)
+                </a>
+                <span class="size-badge" id="size-linux"></span>
+              </td>
+              <td>Descomprimir y ejecutar <code>./pseint</code></td>
+            </tr>
+            <tr>
+              <td><strong>macOS</strong> (Apple Silicon / Intel)</td>
+              <td id="mac-download-cell">
+                <em>En preparación para próximas releases</em>
+              </td>
+              <td>Descomprimir <code>PSeInt.app</code> y abrir con Clic derecho → <em>Abrir</em></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="release-info">
+        🔗 Historial completo de versiones y código fuente en <a href="https://github.com/anadiedrichs/pseint-algoritmos/releases" target="_blank" rel="noopener">GitHub Releases</a>.
+      </div>
+    </section>
+
+    <section id="material">
+      <h2>📚 Sintaxis usada por la cátedra AyED FRM UTN</h2>
+      <div class="card">
+        <h3>📖 Guía Comparativa: Pseudocódigo PSeInt a C++</h3>
+        <p>Documento oficial de referencia para el cursado. Detalla la equivalencia sintáctica entre las estructuras de control, tipos de datos, vectores, matrices y subprogramas de PSeInt hacia el lenguaje C++.</p>
+        <a class="card-link" href="guia-comparativa-c++.html" target="_blank">Abrir la Guía Comparativa online →</a>
+      </div>
+    </section>
+
+    <section id="faq">
+      <h2>❓ Preguntas Frecuentes (FAQ)</h2>
+
+      <details open>
+        <summary>1. ¿Qué diferencias tiene esta versión con el PSeInt original de SourceForge?</summary>
+        <div class="faq-content">
+          <ul>
+            <li><strong>Perfil institucional fijo (<code>UTN-FRM-AyED</code>)</strong>: Viene preconfigurado de fábrica con las reglas exigidas por la cátedra (por ej. tipado estricto, arreglos en base 1, uso de subprocesos y funciones, operadores estándar <code>Y</code>, <code>O</code>, <code>NO</code>, <code>MOD</code>, etc.).</li>
+            <li><strong>Sintaxis uniforme</strong>: Se bloqueó la opción de modificar o cargar otros perfiles en la interfaz gráfica para que todos los estudiantes programen bajo los mismos criterios exigidos en clases y exámenes.</li>
+            <li><strong>Ejemplos ordenados por nivel de dificultad</strong>: Los ejercicios de muestra (<code>001_</code> a <code>006_</code>) están organizados pedagógicamente y se encuentran listos en el menú <em>Ayuda → Ejemplos...</em></li>
+            <li><strong>Inicio guiado</strong>: Al abrir el programa sin archivos previos, se carga automáticamente el ejemplo inicial protegido <code>001_Suma.psc</code>.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>2. ¿Cómo instalo y ejecuto PSeInt en Windows?</summary>
+        <div class="faq-content">
+          <ol>
+            <li>Descarga el paquete <a href="https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-windows-x64.zip">pseint-utn-frm-ayed-windows-x64.zip</a>.</li>
+            <li>Haz clic derecho sobre el archivo <code>.zip</code> descargado y selecciona <strong>Extraer todo...</strong></li>
+            <li>Abre la carpeta resultante y haz doble clic en <strong><code>PSeInt.exe</code></strong> (o <code>wxPSeInt.exe</code>).</li>
+          </ol>
+          <p><strong>No requiere instalación</strong>: Es una versión 100% portable que no necesita permisos de administrador y se puede usar desde cualquier carpeta o pendrive.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>3. ¿Cómo instalo y ejecuto PSeInt en GNU/Linux?</summary>
+        <div class="faq-content">
+          <ol>
+            <li>Descarga el paquete <a href="https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-linux-x64.tar.gz">pseint-utn-frm-ayed-linux-x64.tar.gz</a>.</li>
+            <li>Descomprime el archivo en tu carpeta de preferencia o desde la terminal:
+              <pre><code>tar -xzf pseint-utn-frm-ayed-linux-x64.tar.gz</code></pre>
+            </li>
+            <li>Ingresa al directorio descomprimido y ejecuta el programa:
+              <pre><code>cd pseint-linux
+./pseint</code></pre>
+            </li>
+          </ol>
+        </div>
+      </details>
+
+      <details>
+        <summary>4. ¿Cómo instalo y ejecuto PSeInt en macOS?</summary>
+        <div class="faq-content">
+          <ol>
+            <li>Descarga el paquete para macOS y descomprímelo para obtener <strong><code>PSeInt.app</code></strong> (puedes arrastrarlo a tu carpeta <code>/Applications</code>).</li>
+            <li><strong>Primer inicio y seguridad (Gatekeeper de Apple)</strong>:<br>
+            Al ser una versión académica sin certificado de pago de Apple Developer, macOS mostrará una alerta de seguridad al intentar abrirlo directamente.
+              <ul>
+                <li><strong>Opción gráfica recomendada</strong>: Haz <strong>clic derecho</strong> (o presiona <code>Control</code> y clic) sobre <code>PSeInt.app</code>, selecciona <strong>Abrir</strong> en el menú contextual y confirma haciendo clic en <strong>Abrir</strong> en el cartel de aviso.</li>
+                <li><strong>Opción por Terminal</strong>: Si el sistema indica que el archivo está dañado o bloqueado, abre la Terminal y ejecuta:
+                  <pre><code>xattr -cr /Applications/PSeInt.app</code></pre>
+                </li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+      </details>
+
+      <details>
+        <summary>5. ¿Por qué no puedo cambiar el perfil ni personalizar la sintaxis?</summary>
+        <div class="faq-content">
+          <p>En esta versión las opciones de perfiles han sido desactivadas deliberadamente. El objetivo de la cátedra es nivelar los conocimientos de todos los estudiantes y asegurar que los ejercicios y evaluaciones se resuelvan con los mismos criterios pedagógicos. Todo algoritmo debe ser válido bajo el perfil estricto institucional.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>6. ¿Dónde puedo consultar los ejemplos de clase?</summary>
+        <div class="faq-content">
+          <p>Puedes acceder a los ejemplos que incorpora este programa de dos formas:</p>
+          <ol>
+            <li>Desde el menú superior de PSeInt: ve a <strong>Ayuda → Ejemplos...</strong> y haz clic en el ejercicio que quieras revisar.</li>
+            <li>En la carpeta donde descomprimiste la aplicación, dentro del directorio <code>ejemplos/</code>, donde están clasificados por nivel de dificultad del <code>001_</code> al <code>006_</code> (ej: <code>001_Suma.psc</code>, <code>002_Raices.psc</code>, <code>005_OrdenaLista.psc</code>, etc.).</li>
+          </ol>
+        </div>
+      </details>
+
+      <details>
+        <summary>7. ¿Cómo reporto un problema o me comunico con la cátedra?</summary>
+        <div class="faq-content">
+          <p>Para consultas técnicas, dudas sobre el funcionamiento o sugerencias para la cátedra:</p>
+          <ul>
+            <li>✉️ Correo de soporte: <a href="mailto:ana.diedrichs@docentes.frm.utn.edu.ar"><strong>ana.diedrichs@docentes.frm.utn.edu.ar</strong></a></li>
+            <li>Reportes en GitHub: sección de <a href="https://github.com/anadiedrichs/pseint-algoritmos/issues" target="_blank" rel="noopener">Issues del repositorio</a>.</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+    <footer>
+      <p>
+        <strong>PSeInt</strong> es software libre desarrollado originalmente por <strong>Pablo Novara</strong> bajo licencia <strong>GNU GPL v2</strong>.<br>
+        Adaptación y mantenimiento institucional para la <strong>UTN Facultad Regional Mendoza</strong> a cargo de la Prof. <strong>Ana Laura Diedrichs</strong>.
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      // Consulta dinámica a la API de GitHub Releases
+      fetch('https://api.github.com/repos/anadiedrichs/pseint-algoritmos/releases/latest')
+        .then(function(res) {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.json();
+        })
+        .then(function(data) {
+          if (!data || !data.tag_name) return;
+
+          // Versión
+          var versionEl = document.getElementById('latest-version');
+          if (versionEl) versionEl.textContent = data.tag_name;
+
+          // Fecha
+          if (data.published_at) {
+            var date = new Date(data.published_at);
+            var dateEl = document.getElementById('latest-date');
+            if (dateEl) dateEl.textContent = '(actualizada el ' + date.toLocaleDateString('es-AR') + ')';
+          }
+
+          // Tamaños de descarga y detección de macOS
+          if (data.assets && data.assets.length) {
+            data.assets.forEach(function(asset) {
+              var sizeMB = (asset.size / (1024 * 1024)).toFixed(1) + ' MB';
+              if (asset.name.indexOf('windows') !== -1) {
+                var winEl = document.getElementById('size-windows');
+                if (winEl) winEl.textContent = '(' + sizeMB + ')';
+              } else if (asset.name.indexOf('linux') !== -1) {
+                var lnxEl = document.getElementById('size-linux');
+                if (lnxEl) lnxEl.textContent = '(' + sizeMB + ')';
+              } else if (asset.name.indexOf('macos') !== -1 || asset.name.indexOf('mac') !== -1) {
+                var macCell = document.getElementById('mac-download-cell');
+                if (macCell) {
+                  var ext = asset.name.indexOf('.dmg') !== -1 ? '.dmg' : '.zip';
+                  macCell.innerHTML = '<a class="btn" href="' + asset.browser_download_url + '">📥 Descargar (' + ext + ')</a> <span class="size-badge">(' + sizeMB + ')</span>';
+                }
+              }
+            });
+          }
+        })
+        .catch(function(err) {
+          // Si la API no responde o se excede el rate-limit, las descargas siguen funcionando normalmente.
+        });
+    })();
+  </script>
+</body>
+</html>
