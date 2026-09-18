@@ -85,6 +85,8 @@ Puedes acceder a los ejemplos de dos formas:
 
 ---
 
+[![Invitame un café en cafecito.app](https://cdn.cafecito.app/imgs/buttons/button_1.svg)](https://cafecito.app/anadiedrichs)
+
 ## ⚖️ Créditos y Licencia
 
 * **PSeInt** es software libre creado originalmente por **Pablo Novara** bajo licencia **GNU General Public License (GPL v2)**.
