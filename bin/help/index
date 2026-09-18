@@ -30,10 +30,9 @@
 				0 para.html Para
 		0 subprocesos.html Funciones/Subprocesos
 		0 otros.html Otras consideraciones
-		0 perfiles.html Personalización del lenguaje
+		0 perfiles.html Reglas de sintaxis de la cátedra
 	0 ejemplos.html Ejemplos de algoritmos
 	0 docentes.html Información para docentes
-		0 doc_perfiles.html Creación de perfiles
 		0 doc_ejercicios.html Creación de ejercicios
 			0 html_format.html Formato help.html
 	0 about.html Notas sobre PSeInt

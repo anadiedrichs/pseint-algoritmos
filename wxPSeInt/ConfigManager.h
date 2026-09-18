@@ -4,7 +4,7 @@
 #include <wx/arrstr.h>
 #include "../pseint/LangSettings.h"
 
-#define DEFAULT_PROFILE "Flexible"
+#define DEFAULT_PROFILE "UTN-FRM-AyED"
 #define CUSTOM_PROFILE "<Personalizado>"
 
 class ConfigManager {

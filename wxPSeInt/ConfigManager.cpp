@@ -50,7 +50,7 @@ ConfigManager::ConfigManager(wxString apath) : lang(LS_INIT) {
 }
 
 void ConfigManager::LoadDefaults() {
-//	profile=DEFAULT_PROFILE;
+	LoadListedProfile(DEFAULT_PROFILE);
 	animate_gui=true;
 	reorganize_for_debug=true;
 	use_colors=true;
@@ -295,7 +295,10 @@ bool ConfigManager::LoadProfileFromFile(wxString path) {
 }
 
 bool ConfigManager::LoadListedProfile(wxString name) {
-	if (!lang.Load(DIR_PLUS_FILE(profiles_dir,name),true)) return false;
+	if (!lang.Load(DIR_PLUS_FILE(profiles_dir,name),true)) {
+		if (!lang.Load(DIR_PLUS_FILE_2(pseint_dir,profiles_dir,name),true))
+			return false;
+	}
 	return true;
 }
 

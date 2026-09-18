@@ -122,8 +122,8 @@ BEGIN_EVENT_TABLE(mxMainWindow, wxFrame)
 //	EVT_MENU(mxID_EDIT_BEAUTIFY_CODE, mxMainWindow::OnEdit)
 	
 	EVT_MENU(mxID_DEBUG_STEP, mxMainWindow::OnDebugShortcut)
-	EVT_MENU(mxID_DO_THAT, mxMainWindow::OnDoThat)
-	EVT_MENU(mxID_CONFIG_LANGUAGE, mxMainWindow::OnConfigLanguage)
+//	EVT_MENU(mxID_DO_THAT, mxMainWindow::OnDoThat)
+//	EVT_MENU(mxID_CONFIG_LANGUAGE, mxMainWindow::OnConfigLanguage)
 	EVT_MENU(mxID_CONFIG_ANIMATE_GUI, mxMainWindow::OnConfigAnimateGui)
 	EVT_MENU(mxID_CONFIG_REORGANIZE_FOR_DEBUG, mxMainWindow::OnConfigReorganizeForDebug)
 	EVT_MENU(mxID_CONFIG_PSDRAW_NO_CROP, mxMainWindow::OnConfigPSDrawNoCrop)
@@ -334,7 +334,7 @@ void mxMainWindow::CreateMenus() {
 	utils->AddItemToMenu(cfg_pres,mxID_CONFIG_SELECT_FONTS, _Z("Seleccionar fuentes..."),"","fuentes.png");
 	cfg->AppendSubMenu(cfg_pres,_Z("Presentación"));
 	
-	utils->AddItemToMenu(cfg,mxID_CONFIG_LANGUAGE, _Z("Opciones del Lenguaje (perfiles)..."),"","lenguaje.png");
+//	utils->AddItemToMenu(cfg,mxID_CONFIG_LANGUAGE, _Z("Opciones del Lenguaje (perfiles)..."),"","lenguaje.png"); // Deshabilitado para cátedra AED
 	mi_nassi_shne = utils->AddCheckToMenu(cfg,mxID_CONFIG_NASSI_SHNEIDERMAN, _Z("Utilizar diagramas Nassi-Shneiderman"),"",cfg_lang[LS_USE_NASSI_SHNEIDERMAN]);
 #if !defined(__WIN32__) && !defined(__APPLE__)
 	cfg->AppendSeparator();
@@ -1594,20 +1594,21 @@ void mxMainWindow::OnHelpUpdates(wxCommandEvent &evt) {
 }
 
 void mxMainWindow::OnConfigLanguage(wxCommandEvent &evt) {
-	if (mxProfile(this).ShowModal()) 
-		ProfileChanged();
+	// Deshabilitado para cátedra AED
+//	if (mxProfile(this).ShowModal()) 
+//		ProfileChanged();
 }
 
 void mxMainWindow::SetAccelerators() {
-	wxAcceleratorEntry entries[7];
+	wxAcceleratorEntry entries[6];
 	entries[0].Set(wxACCEL_CTRL|wxACCEL_SHIFT, WXK_TAB, mxID_VIEW_NOTEBOOK_PREV);
 	entries[1].Set(wxACCEL_CTRL, WXK_TAB, mxID_VIEW_NOTEBOOK_NEXT);
 	entries[2].Set(wxACCEL_CTRL, WXK_PAGEUP, mxID_VIEW_NOTEBOOK_PREV);
 	entries[3].Set(wxACCEL_CTRL, WXK_PAGEDOWN, mxID_VIEW_NOTEBOOK_NEXT);
-	entries[4].Set(wxACCEL_CTRL|wxACCEL_SHIFT, WXK_F5, mxID_DO_THAT);
-	entries[5].Set(0, WXK_F6, mxID_DEBUG_STEP);
-	entries[6].Set(wxACCEL_ALT|wxACCEL_SHIFT, WXK_RETURN, mxID_VARS_RENAME);
-	wxAcceleratorTable accel(7, entries);
+	// entries[4].Set(wxACCEL_CTRL|wxACCEL_SHIFT, WXK_F5, mxID_DO_THAT); // Deshabilitado para cátedra AED
+	entries[4].Set(0, WXK_F6, mxID_DEBUG_STEP);
+	entries[5].Set(wxACCEL_ALT|wxACCEL_SHIFT, WXK_RETURN, mxID_VARS_RENAME);
+	wxAcceleratorTable accel(6, entries);
 	SetAcceleratorTable(accel);
 }
 
@@ -1628,11 +1629,12 @@ void mxMainWindow::OnViewNotebookPrev(wxCommandEvent &evt){
 }
 
 void mxMainWindow::OnDoThat (wxCommandEvent &event) {
-	LangSettings custom_lang = cfg_lang;
-	if (mxConfig(this,custom_lang).ShowModal() && custom_lang!=cfg_lang) {
-		config->SetProfile(custom_lang);
-		ProfileChanged();
-	}
+	// Deshabilitado para cátedra AED
+//	LangSettings custom_lang = cfg_lang;
+//	if (mxConfig(this,custom_lang).ShowModal() && custom_lang!=cfg_lang) {
+//		config->SetProfile(custom_lang);
+//		ProfileChanged();
+//	}
 }
 
 void mxMainWindow::OnFilePrint (wxCommandEvent &event) {

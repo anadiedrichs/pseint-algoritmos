@@ -141,13 +141,10 @@ bool mxApplication::OnInit() {
 	
 	if (!config->version) {
 		_LOG("mxApplication::OnInit NO_PROFILE");
-//		wxMessageBox(_Z(
-//			"Bienvenido a PSeInt. Antes de comenzar debes seleccionar un perfil "
-//			"para ajustar el pseudolenguaje a tus necesidades. Si tu universidad "
-//			"o institución no aparece en la lista, notifica a tu profesor para "
-//			"que envíe sus datos a través del sitio web. "
-//			),_Z("Bienvenido a PSeInt"),wxOK,main_window);
-		mxWelcome(main_window).ShowModal();
+//		mxWelcome(main_window).ShowModal(); // Deshabilitado para la cátedra AED
+		config->LoadListedProfile(DEFAULT_PROFILE);
+		config->version = VERSION;
+		config->Save();
 		wxString default_example = DIR_PLUS_FILE(config->examples_dir, "001_Suma.psc");
 		if (!wxFileName::FileExists(default_example))
 			default_example = DIR_PLUS_FILE_2(config->pseint_dir, config->examples_dir, "001_Suma.psc");
@@ -157,6 +154,11 @@ bool mxApplication::OnInit() {
 			main_window->NewProgram();
 		main_window->ProfileChanged();
 	} else {
+		if (cfg_lang.name != DEFAULT_PROFILE) {
+			config->LoadListedProfile(DEFAULT_PROFILE);
+			config->Save();
+			main_window->ProfileChanged();
+		}
 #ifndef DISABLE_UPDATES_CHECKER
 		if (config->check_for_updates) 
 			mxUpdatesChecker::BackgroundCheck();
