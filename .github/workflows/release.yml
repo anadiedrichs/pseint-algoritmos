@@ -162,6 +162,13 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           tail -n 120 build-mac.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B debug-macos-log
+          tail -n 500 build-mac.log > macos-error.log
+          git add macos-error.log
+          git commit -m "debug: macos build error log" || true
+          git push origin debug-macos-log --force || true
 
       - name: Empaquetar PSeInt.app y generar instalador
         run: |
