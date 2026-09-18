@@ -8,12 +8,18 @@ MACOS=1
 RM=rm -f
 MKDIR=mkdir -p
 
+ifeq ($(MAC_PREFIX),)
+GCC=clang
+GPP=clang++
+AR=ar
+else
 GCC=${MAC_PREFIX}-clang
 GPP=${MAC_PREFIX}-clang++
 AR=${MAC_PREFIX}-ar
+endif
 
 CXXFLAGS=-O3 -DNDEBUG -Wno-invalid-source-encoding -Wno-inconsistent-missing-override
-LDFLASG=
+LDFLAGS=-headerpad_max_install_names
 
 WX_CXXFLAGS=`wx-config --cppflags` -DWX3
 WX_LDFLAGS=`wx-config --libs std,stc,aui`

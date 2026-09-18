@@ -138,9 +138,37 @@ jobs:
           name: pseint-windows-x64
           path: dist/pseint-utn-frm-ayed-windows-x64.zip
 
+  build-macos:
+    name: Compilar para macOS (Apple Silicon arm64)
+    runs-on: macos-14
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias con Homebrew
+        run: |
+          brew install wxwidgets
+
+      - name: Compilar PSeInt nativo (macOS)
+        run: |
+          mkdir -p bin temp
+          make ARCH=mac -j$(sysctl -n hw.ncpu)
+
+      - name: Empaquetar PSeInt.app y generar instalador
+        run: |
+          bash dist/package_mac.sh arm64
+
+      - name: Subir artefactos macOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: pseint-macos-arm64
+          path: |
+            dist/pseint-utn-frm-ayed-macos-arm64.dmg
+            dist/pseint-utn-frm-ayed-macos-arm64.zip
+
   publish-release:
     name: Publicar Release en GitHub
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
@@ -165,6 +193,7 @@ jobs:
           files: |
             release-artifacts/*.tar.gz
             release-artifacts/*.zip
+            release-artifacts/*.dmg
           name: Release ${{ steps.vars.outputs.tag }}
           tag_name: ${{ steps.vars.outputs.tag }}
           draft: false

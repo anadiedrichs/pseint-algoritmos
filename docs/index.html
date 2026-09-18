@@ -297,11 +297,11 @@
               <td>Descomprimir y ejecutar <code>./pseint</code></td>
             </tr>
             <tr>
-              <td><strong>macOS</strong> (Apple Silicon / Intel)</td>
+              <td><strong>macOS</strong> (Apple Silicon arm64)</td>
               <td id="mac-download-cell">
-                <em>En preparación para próximas releases</em>
+                <a class="btn" id="btn-macos" href="https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-macos-arm64.dmg">📥 Descargar macOS (.dmg)</a>
               </td>
-              <td>Descomprimir <code>PSeInt.app</code> y abrir con Clic derecho → <em>Abrir</em></td>
+              <td>Abrir imagen DMG, arrastrar a Aplicaciones y Clic derecho → <em>Abrir</em></td>
             </tr>
           </tbody>
         </table>
@@ -460,8 +460,12 @@
               } else if (asset.name.indexOf('macos') !== -1 || asset.name.indexOf('mac') !== -1) {
                 var macCell = document.getElementById('mac-download-cell');
                 if (macCell) {
-                  var ext = asset.name.indexOf('.dmg') !== -1 ? '.dmg' : '.zip';
-                  macCell.innerHTML = '<a class="btn" href="' + asset.browser_download_url + '">📥 Descargar (' + ext + ')</a> <span class="size-badge">(' + sizeMB + ')</span>';
+                  var isDmg = asset.name.indexOf('.dmg') !== -1;
+                  if (isDmg || !macCell.dataset.hasDmg) {
+                    var ext = isDmg ? '.dmg' : '.zip';
+                    macCell.innerHTML = '<a class="btn" href="' + asset.browser_download_url + '">📥 Descargar (' + ext + ')</a> <span class="size-badge">(' + sizeMB + ')</span>';
+                    if (isDmg) macCell.dataset.hasDmg = "true";
+                  }
                 }
               }
             });
