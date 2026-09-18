@@ -110,7 +110,15 @@ bool mxApplication::OnInit() {
 	main_window->Maximize(config->maximized);
 	main_window->Show(true);
 	if (logger || argc==1) {
-		if (config->version) main_window->NewProgram();
+		if (config->version) {
+			wxString default_example = DIR_PLUS_FILE(config->examples_dir, "001_Suma.psc");
+			if (!wxFileName::FileExists(default_example))
+				default_example = DIR_PLUS_FILE_2(config->pseint_dir, config->examples_dir, "001_Suma.psc");
+			if (wxFileName::FileExists(default_example))
+				main_window->OpenProgram(default_example, true);
+			else
+				main_window->NewProgram();
+		}
 	} else {
 		for (int i=1;i<argc;i++)
 			main_window->OpenProgram(DIR_PLUS_FILE(cmd_path,argv[i]));
@@ -140,7 +148,13 @@ bool mxApplication::OnInit() {
 //			"que envíe sus datos a través del sitio web. "
 //			),_Z("Bienvenido a PSeInt"),wxOK,main_window);
 		mxWelcome(main_window).ShowModal();
-		main_window->NewProgram();
+		wxString default_example = DIR_PLUS_FILE(config->examples_dir, "001_Suma.psc");
+		if (!wxFileName::FileExists(default_example))
+			default_example = DIR_PLUS_FILE_2(config->pseint_dir, config->examples_dir, "001_Suma.psc");
+		if (wxFileName::FileExists(default_example))
+			main_window->OpenProgram(default_example, true);
+		else
+			main_window->NewProgram();
 		main_window->ProfileChanged();
 	} else {
 #ifndef DISABLE_UPDATES_CHECKER
