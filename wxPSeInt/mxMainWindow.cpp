@@ -426,7 +426,7 @@ void mxMainWindow::CreateCommandsPanel() {
 	AddCommandButton(sizer,panel,mxID_CMD_SEGUN,   "segun.png",   _Z("Según"));
 	AddCommandButton(sizer,panel,mxID_CMD_MIENTRAS,"mientras.png",_Z("Mientras"));
 	AddCommandButton(sizer,panel,mxID_CMD_REPETIR, "repetir.png", _Z("Repetir"));
-	AddCommandButton(sizer,panel,mxID_CMD_PARA,    "para.png",    _Z("Para"));
+	AddCommandButton(sizer,panel,mxID_CMD_PARA,    "variar.png",  _Z("VARIAR"));
 	button_subproc=NULL; CreateButtonSubProceso(panel,sizer);
 	panel->SetSizerAndFit(sizer);
 	
@@ -1024,11 +1024,13 @@ void mxMainWindow::OnCmdPara(wxCommandEvent &evt) {
 	wxArrayString toins;
 	if (alternative) {
 		toins.Add("Para Cada {id_elemento} de {id_arreglo} Hacer");
+		toins.Add("\t{secuencia_de_acciones}");
+		toins.Add("FinPara");
 	} else {
-		toins.Add("Para {variable_numerica}<-{valor_inicial} Hasta {valor_final} Con Paso {paso} Hacer");
+		toins.Add("VARIAR {variable_numerica} DE {valor_inicial} HASTA {valor_final} PASO {paso}");
+		toins.Add("\t{secuencia_de_acciones}");
+		toins.Add("FinVariar");
 	}
-	toins.Add("\t{secuencia_de_acciones}");
-	toins.Add("FinPara");
 	InsertCode(toins);
 }
 
