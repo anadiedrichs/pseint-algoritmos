@@ -10,6 +10,8 @@
 	#include <fcntl.h>
 	#include <unistd.h>
 	#include <sys/socket.h>
+	#include <netinet/in.h>
+	#include <arpa/inet.h>
 	#include <netdb.h>
 	#define ZOCKET_ERROR -1
 #endif

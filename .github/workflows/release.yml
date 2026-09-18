@@ -151,8 +151,17 @@ jobs:
 
       - name: Compilar PSeInt nativo (macOS)
         run: |
-          mkdir -p bin temp
-          make ARCH=mac -j$(sysctl -n hw.ncpu)
+          mkdir -p bin temp temp/mac_release/{pseint,psexport,hoewrap,wxpseint,pseval,updatem,psterm,psdraw3,psdrawE}
+          set -o pipefail
+          make ARCH=mac -j$(sysctl -n hw.ncpu) 2>&1 | tee build-mac.log
+
+      - name: Reportar log en caso de fallo en macOS
+        if: failure()
+        run: |
+          echo "## ❌ Error de compilación en macOS" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 120 build-mac.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Empaquetar PSeInt.app y generar instalador
         run: |

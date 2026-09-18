@@ -18,11 +18,13 @@ GPP=${MAC_PREFIX}-clang++
 AR=${MAC_PREFIX}-ar
 endif
 
-CXXFLAGS=-O3 -DNDEBUG -Wno-invalid-source-encoding -Wno-inconsistent-missing-override
+CFLAGS=-O3 -DNDEBUG
+CXXFLAGS=-O3 -DNDEBUG -std=c++14 -Wno-invalid-source-encoding -Wno-inconsistent-missing-override
 LDFLAGS=-headerpad_max_install_names
 
 WX_CXXFLAGS=`wx-config --cppflags` -DWX3
 WX_LDFLAGS=`wx-config --libs std,stc,aui`
 
+GL_CXXFLAGS=`wx-config --cflags`
 GL_LDFLAGS=`wx-config --libs gl` -framework OpenGL -headerpad_max_install_names
 # el -headerpad_max_install_names en LIBS hace que deje mas espacio para los paths que tiene que reemplazar fix_dylibs.sh con install_names_tool, si no puede que no alcance
