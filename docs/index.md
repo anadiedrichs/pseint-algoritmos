@@ -8,7 +8,7 @@ Distribución oficial de **PSeInt** adaptada específicamente para la cátedra d
 
 | Sistema Operativo | Paquete Portable | Instrucciones rápidas |
 | :--- | :--- | :--- |
-| **Microsoft Windows** (x64) | [📥 **Descargar Windows (.zip)**](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-windows-x64.zip) <span id="size-windows" style="font-size:0.85em; color:#555;"></span> | Descomprimir y ejecutar `PSeInt.exe` |
+| **Microsoft Windows** (x64) | [📥 **Descargar Windows (.zip)**](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-windows-x64.zip) <span id="size-windows" style="font-size:0.85em; color:#555;"></span> | Descomprimir y ejecutar `wxPSeInt.exe` |
 | **GNU/Linux** (x64) | [📥 **Descargar Linux (.tar.gz)**](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-linux-x64.tar.gz) <span id="size-linux" style="font-size:0.85em; color:#555;"></span> | Descomprimir y ejecutar `./pseint` |
 | **macOS** (Apple Silicon arm64) | <span id="mac-download-cell">[📥 Descargar macOS (.dmg)](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-macos-arm64.dmg)</span> | Abrir imagen DMG, arrastrar a Aplicaciones y Clic derecho $\rightarrow$ *Abrir* |
 
@@ -35,7 +35,7 @@ Distribución oficial de **PSeInt** adaptada específicamente para la cátedra d
 ### 2. ¿Cómo instalo y ejecuto PSeInt en Windows?
 1. Descarga el paquete [**pseint-utn-frm-ayed-windows-x64.zip**](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-windows-x64.zip).
 2. Haz clic derecho sobre el archivo `.zip` descargado y selecciona **Extraer todo...**.
-3. Abre la carpeta resultante y ejecuta haciendo doble clic en **`PSeInt.exe`** (o `wxPSeInt.exe`).
+3. Abre la carpeta resultante y ejecuta haciendo doble clic en **`wxPSeInt.exe`** (o en `Iniciar_PSeInt.bat`).
 4. **No requiere instalación ni permisos de administrador**: Es una versión 100% portable que puedes usar desde cualquier carpeta o pendrive.
 
 ---

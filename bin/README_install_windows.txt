@@ -15,13 +15,12 @@ INSTRUCCIONES DE USO:
 2. Simplemente descomprima este archivo ZIP en la carpeta de su preferencia
    (por ejemplo en Documentos o en el Escritorio).
 3. Para iniciar la interfaz gráfica (entorno de desarrollo), haga doble clic en:
-      PSeInt.exe
-   (o en wxPSeInt.exe, ambos inician el entorno gráfico).
+      wxPSeInt.exe  (o en Iniciar_PSeInt.bat)
 4. El programa mantendrá su configuración en esta misma carpeta (modo portable).
 
 EJECUTABLES INCLUIDOS:
 ----------------------
-- PSeInt.exe / wxPSeInt.exe : Entorno de desarrollo gráfico principal (IDE).
+- wxPSeInt.exe / Iniciar_PSeInt.bat : Entorno de desarrollo gráfico principal (IDE).
 - pseint.exe                : Intérprete y verificador de pseudocódigo en línea de comandos.
 - psdraw3.exe / psdrawE.exe : Editor y exportador gráfico de diagramas de flujo.
 - psterm.exe                : Terminal de ejecución integrada.

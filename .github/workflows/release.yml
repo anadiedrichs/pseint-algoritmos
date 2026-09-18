@@ -108,10 +108,9 @@ jobs:
           rm -rf dist/pseint-windows/bin
           rm -f dist/pseint-windows/README_install_linux.txt
 
-          # Crear copia de conveniencia PSeInt.exe apuntando a wxPSeInt.exe
-          if [ -f "dist/pseint-windows/wxPSeInt.exe" ]; then
-            cp dist/pseint-windows/wxPSeInt.exe dist/pseint-windows/PSeInt.exe
-          fi
+          # Evitar colisión de nombres con pseint.exe (intérprete CLI) en sistemas de archivo case-insensitive
+          rm -f dist/pseint-windows/PSeInt.exe
+          echo '@start "" "%~dp0wxPSeInt.exe" %*' > dist/pseint-windows/Iniciar_PSeInt.bat
 
           # Copiar DLLs requeridas por los ejecutables
           ldd dist/pseint-windows/*.exe 2>/dev/null | grep -i '/mingw64/bin/' | awk '{print $3}' | sort -u | while read dll; do
