@@ -299,9 +299,9 @@
             <tr>
               <td><strong>macOS</strong> (Apple Silicon arm64)</td>
               <td id="mac-download-cell">
-                <a class="btn" id="btn-macos" href="https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-macos-arm64.dmg">📥 Descargar macOS (.dmg)</a>
+                <em>Pendiente</em>
               </td>
-              <td>Abrir imagen DMG, arrastrar a Aplicaciones y Clic derecho → <em>Abrir</em></td>
+              <td>En preparación</td>
             </tr>
           </tbody>
         </table>
@@ -457,6 +457,7 @@
               } else if (asset.name.indexOf('linux') !== -1) {
                 var lnxEl = document.getElementById('size-linux');
                 if (lnxEl) lnxEl.textContent = '(' + sizeMB + ')';
+              /* macOS pendiente por el momento
               } else if (asset.name.indexOf('macos') !== -1 || asset.name.indexOf('mac') !== -1) {
                 var macCell = document.getElementById('mac-download-cell');
                 if (macCell) {
@@ -467,6 +468,7 @@
                     if (isDmg) macCell.dataset.hasDmg = "true";
                   }
                 }
+              */
               }
             });
           }

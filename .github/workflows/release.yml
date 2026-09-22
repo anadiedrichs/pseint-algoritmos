@@ -136,53 +136,53 @@ jobs:
           name: pseint-windows-x64
           path: dist/pseint-utn-frm-ayed-windows-x64.zip
 
-  build-macos:
-    name: Compilar para macOS (Apple Silicon arm64)
-    runs-on: macos-14
-    steps:
-      - name: Clonar repositorio
-        uses: actions/checkout@v4
-
-      - name: Instalar dependencias con Homebrew
-        run: |
-          brew install wxwidgets
-
-      - name: Compilar PSeInt nativo (macOS)
-        run: |
-          mkdir -p bin temp temp/mac_release/{pseint,psexport,hoewrap,wxpseint,pseval,updatem,psterm,psdraw3,psdrawE}
-          set -o pipefail
-          make ARCH=mac -j$(sysctl -n hw.ncpu) 2>&1 | tee build-mac.log
-
-      - name: Reportar log en caso de fallo en macOS
-        if: failure()
-        run: |
-          echo "## ❌ Error de compilación en macOS" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -n 120 build-mac.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B debug-macos-log
-          tail -n 500 build-mac.log > macos-error.log
-          git add macos-error.log
-          git commit -m "debug: macos build error log" || true
-          git push origin debug-macos-log --force || true
-
-      - name: Empaquetar PSeInt.app y generar instalador
-        run: |
-          bash dist/package_mac.sh arm64
-
-      - name: Subir artefactos macOS
-        uses: actions/upload-artifact@v4
-        with:
-          name: pseint-macos-arm64
-          path: |
-            dist/pseint-utn-frm-ayed-macos-arm64.dmg
-            dist/pseint-utn-frm-ayed-macos-arm64.zip
+#  build-macos:
+#    name: Compilar para macOS (Apple Silicon arm64)
+#    runs-on: macos-14
+#    steps:
+#      - name: Clonar repositorio
+#        uses: actions/checkout@v4
+#
+#      - name: Instalar dependencias con Homebrew
+#        run: |
+#          brew install wxwidgets
+#
+#      - name: Compilar PSeInt nativo (macOS)
+#        run: |
+#          mkdir -p bin temp temp/mac_release/{pseint,psexport,hoewrap,wxpseint,pseval,updatem,psterm,psdraw3,psdrawE}
+#          set -o pipefail
+#          make ARCH=mac -j$(sysctl -n hw.ncpu) 2>&1 | tee build-mac.log
+#
+#      - name: Reportar log en caso de fallo en macOS
+#        if: failure()
+#        run: |
+#          echo "## ❌ Error de compilación en macOS" >> $GITHUB_STEP_SUMMARY
+#          echo '```' >> $GITHUB_STEP_SUMMARY
+#          tail -n 120 build-mac.log >> $GITHUB_STEP_SUMMARY
+#          echo '```' >> $GITHUB_STEP_SUMMARY
+#          git config user.name "github-actions[bot]"
+#          git config user.email "github-actions[bot]@users.noreply.github.com"
+#          git checkout -B debug-macos-log
+#          tail -n 500 build-mac.log > macos-error.log
+#          git add macos-error.log
+#          git commit -m "debug: macos build error log" || true
+#          git push origin debug-macos-log --force || true
+#
+#      - name: Empaquetar PSeInt.app y generar instalador
+#        run: |
+#          bash dist/package_mac.sh arm64
+#
+#      - name: Subir artefactos macOS
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: pseint-macos-arm64
+#          path: |
+#            dist/pseint-utn-frm-ayed-macos-arm64.dmg
+#            dist/pseint-utn-frm-ayed-macos-arm64.zip
 
   publish-release:
     name: Publicar Release en GitHub
-    needs: [build-linux, build-windows, build-macos]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
@@ -207,7 +207,7 @@ jobs:
           files: |
             release-artifacts/*.tar.gz
             release-artifacts/*.zip
-            release-artifacts/*.dmg
+            # release-artifacts/*.dmg
           name: Release ${{ steps.vars.outputs.tag }}
           tag_name: ${{ steps.vars.outputs.tag }}
           draft: false

@@ -10,7 +10,7 @@ Distribución oficial de **PSeInt** adaptada específicamente para la cátedra d
 | :--- | :--- | :--- |
 | **Microsoft Windows** (x64) | [📥 **Descargar Windows (.zip)**](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-windows-x64.zip) <span id="size-windows" style="font-size:0.85em; color:#555;"></span> | Descomprimir y ejecutar `wxPSeInt.exe` |
 | **GNU/Linux** (x64) | [📥 **Descargar Linux (.tar.gz)**](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-linux-x64.tar.gz) <span id="size-linux" style="font-size:0.85em; color:#555;"></span> | Descomprimir y ejecutar `./pseint` |
-| **macOS** (Apple Silicon arm64) | <span id="mac-download-cell">[📥 Descargar macOS (.dmg)](https://github.com/anadiedrichs/pseint-algoritmos/releases/latest/download/pseint-utn-frm-ayed-macos-arm64.dmg)</span> | Abrir imagen DMG, arrastrar a Aplicaciones y Clic derecho $\rightarrow$ *Abrir* |
+| **macOS** (Apple Silicon arm64) | <span id="mac-download-cell">*Pendiente*</span> | En preparación |
 
 > 🔗 Puedes consultar el historial completo de versiones en la sección de [Releases en GitHub](https://github.com/anadiedrichs/pseint-algoritmos/releases).
 
@@ -120,6 +120,7 @@ Puedes acceder a los ejemplos de dos formas:
           } else if (asset.name.indexOf('linux') !== -1) {
             var lnxEl = document.getElementById('size-linux');
             if (lnxEl) lnxEl.textContent = '(' + sizeMB + ')';
+          /* macOS pendiente por el momento
           } else if (asset.name.indexOf('macos') !== -1 || asset.name.indexOf('mac') !== -1) {
             var macCell = document.getElementById('mac-download-cell');
             if (macCell) {
@@ -130,6 +131,7 @@ Puedes acceder a los ejemplos de dos formas:
                 if (isDmg) macCell.dataset.hasDmg = "true";
               }
             }
+          */
           }
         });
       }
