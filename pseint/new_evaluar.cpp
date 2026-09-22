@@ -31,6 +31,8 @@ bool PalabraReservada(const string &str) {
 		return true;
 	if (str=="SIN" || str=="BAJAR" || str=="SINBAJAR" || str=="SALTAR" || str=="SINSALTAR")
 		return true;
+	if (str=="VAR" || str=="CONST" || str=="PROGRAMA" || str=="FINPROGRAMA" || str=="INICIO" || str=="VARIAR" || str=="FINVARIAR")
+		return true;
 	return false;
 }
 

@@ -270,7 +270,7 @@ static const char *mxSourceWords1 =
 	"logico lógico logica lógica logicos lógicos logicas lógicas "
 	"borrar limpiar pantalla borrarpantalla limpiarpantalla esperar tecla esperartecla segundos milisegundos segundo milisegundo sinsaltar sin saltar sinbajar bajar "
 	"según finsegún dimensión "
-	"programa finprograma inicio variar finvariar const car tipo registro finregistro paso ";
+	"programa finprograma inicio variar finvariar var const car tipo registro finregistro paso ";
 
 static const char *mxSourceWords1_op =
 	"y no o mod ";
