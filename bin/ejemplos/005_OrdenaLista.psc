@@ -17,10 +17,10 @@ INICIO
 		lista[cant] = nombre
 		REPETIR
 			LEER(nombre)
-			se_repite = FALSO
+			se_repite = [F]
 			VARIAR i DE 1 HASTA cant PASO 1
 				SI nombre == lista[i] ENTONCES
-					se_repite = VERDADERO
+					se_repite = [V]
 				FINSI
 			FINVARIAR
 		HASTA QUE [NO] se_repite

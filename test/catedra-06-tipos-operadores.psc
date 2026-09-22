@@ -9,8 +9,8 @@ INICIO
 	real1 = 7.5 / 2.0
 	texto = "Hola Catedra"
 	caracter1 = "Z"
-	bandera1 = VERDADERO
-	bandera2 = FALSO
+	bandera1 = [V]
+	bandera2 = [F]
 
 	SI (bandera1 [Y] [NO] bandera2) ENTONCES
 		ESCRIBIR("Logica Y y NO correcta")

@@ -156,7 +156,11 @@ void Ejecutar(int LineStart, int LineEnd) {
 					fixwincharset(aux1,true); // "descorrige" para que al corregir no traiga problemas
 					
 					string auxup=ToUpper(aux1);
-					if (auxup=="VERDADERO" || auxup=="FALSO") aux1=auxup;
+					if (auxup=="VERDADERO" || auxup=="FALSO" || auxup=="[V]" || auxup=="[F]") {
+						if (auxup=="[V]") auxup="VERDADERO";
+						else if (auxup=="[F]") auxup="FALSO";
+						aux1=auxup;
+					}
 					
 					if (tipo==vt_logica && aux1.size()==1 && (toupper(aux1[0])=='F'||aux1[0]=='0')) aux1=FALSO;
 					if (tipo==vt_logica && aux1.size()==1 && (toupper(aux1[0])=='V'||aux1[0]=='1')) aux1=VERDADERO;

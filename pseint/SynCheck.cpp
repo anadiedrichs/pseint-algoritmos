@@ -503,6 +503,30 @@ static void ReemplazarTodos(string &s, const string &from, const string &to) {
 	}
 }
 
+// Reemplaza todas las apariciones de "from" por "to" dentro de s,
+// omitiendo las que ocurran dentro de cadenas literales entre comillas simples o dobles.
+static void ReemplazarFueraDeCadenas(string &s, const string &from, const string &to) {
+	bool in_str = false;
+	char quote = 0;
+	size_t i = 0;
+	while (i < s.size()) {
+		char c = s[i];
+		if (in_str) {
+			if (c == quote) in_str = false;
+			i++;
+		} else if (c == '"' || c == '\'') {
+			in_str = true;
+			quote = c;
+			i++;
+		} else if (i + from.size() <= s.size() && s.substr(i, from.size()) == from) {
+			s.replace(i, from.size(), to);
+			i += to.size();
+		} else {
+			i++;
+		}
+	}
+}
+
 // Devuelve la posicion del ')' que cierra el '(' que esta en
 // pos_apertura, saltando el contenido de cadenas literales entre
 // comillas dobles (para no confundirse con parentesis que aparezcan
@@ -1896,12 +1920,18 @@ static void AplicarSinonimosCatedra(string &cadena) {
 	// el perfil tiene word_operators=1, asi que solo hace falta
 	// sacar los corchetes (puede aparecer en cualquier parte de
 	// la linea, no solo al principio).
-	ReemplazarTodos(cadena, "[Y]", " Y ");
-	ReemplazarTodos(cadena, "[O]", " O ");
-	ReemplazarTodos(cadena, "[NO]", " NO ");
-	ReemplazarTodos(cadena, "[y]", " Y ");
-	ReemplazarTodos(cadena, "[o]", " O ");
-	ReemplazarTodos(cadena, "[no]", " NO ");
+	ReemplazarFueraDeCadenas(cadena, "[Y]", " Y ");
+	ReemplazarFueraDeCadenas(cadena, "[O]", " O ");
+	ReemplazarFueraDeCadenas(cadena, "[NO]", " NO ");
+	ReemplazarFueraDeCadenas(cadena, "[y]", " Y ");
+	ReemplazarFueraDeCadenas(cadena, "[o]", " O ");
+	ReemplazarFueraDeCadenas(cadena, "[no]", " NO ");
+
+	// Valores logicos de la catedra: [V] -> VERDADERO, [F] -> FALSO
+	ReemplazarFueraDeCadenas(cadena, "[V]", " VERDADERO ");
+	ReemplazarFueraDeCadenas(cadena, "[F]", " FALSO ");
+	ReemplazarFueraDeCadenas(cadena, "[v]", " VERDADERO ");
+	ReemplazarFueraDeCadenas(cadena, "[f]", " FALSO ");
 
 	// Normalizar accesos a matrices multidimensionales estilo C++: matriz[i][j] -> matriz[i, j]
 	NormalizarAccesoMatrices(cadena);

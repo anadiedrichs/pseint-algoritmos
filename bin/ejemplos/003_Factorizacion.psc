@@ -8,7 +8,7 @@ INICIO
 	ESCRIBIR("Ingrese el numero: ")
 	LEER(num)
 	ESCRIBIR("Factorizacion: ")
-	factorizar = VERDADERO
+	factorizar = [V]
 
 	MIENTRAS (factorizar) [Y] (num > 1) HACER
 		div = 0
@@ -17,20 +17,20 @@ INICIO
 			num = trunc(num / 2)
 		SINO
 			div = 1
-			factor_primo = VERDADERO
+			factor_primo = [V]
 			MIENTRAS (div <= rc(num)) [Y] (factor_primo) HACER
 				div = div + 2
 				SI num MOD div == 0 ENTONCES
-					factor_primo = FALSO
+					factor_primo = [F]
 				FINSI
 			FINMIENTRAS
 			SI factor_primo ENTONCES
 				ESCRIBIR(num)
-				factorizar = FALSO
+				factorizar = [F]
 			SINO
 				ESCRIBIR(div)
 				num = trunc(num / div)
-				factor_primo = VERDADERO
+				factor_primo = [V]
 			FINSI
 		FINSI
 	FINMIENTRAS

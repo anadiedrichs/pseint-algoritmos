@@ -13,10 +13,10 @@ INICIO
 	n = 3
 
 	MIENTRAS cant_mostrados < cant_a_mostrar HACER
-		es_primo = VERDADERO
+		es_primo = [V]
 		VARIAR i DE 3 HASTA trunc(rc(n)) PASO 2
 			SI n MOD i == 0 ENTONCES
-				es_primo = FALSO
+				es_primo = [F]
 			FINSI
 		FINVARIAR
 

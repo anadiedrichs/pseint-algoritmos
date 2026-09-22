@@ -10,18 +10,18 @@ INICIO
 	ESCRIBIR("Ingrese un numero entre 1 y 1000:")
 	LEER(Numero)
 
-	SePuedeConvertir = VERDADERO
+	SePuedeConvertir = [V]
 	SI Numero == 0 ENTONCES
 		ESCRIBIR("No existe ningun simbolo para representar el 0")
-		SePuedeConvertir = FALSO
+		SePuedeConvertir = [F]
 	FINSI
 	SI Numero > 1000 ENTONCES
 		ESCRIBIR("Muy alto")
-		SePuedeConvertir = FALSO
+		SePuedeConvertir = [F]
 	FINSI
 	SI Numero < 0 ENTONCES
 		ESCRIBIR("Debe ser positivo")
-		SePuedeConvertir = FALSO
+		SePuedeConvertir = [F]
 	FINSI
 
 	SI SePuedeConvertir ENTONCES

@@ -6,7 +6,7 @@ VAR EligeSalir, EsPrimo: LOGICO
 VAR N, Nu, r: REAL
 VAR eleccion, f, Divisor: ENTERO
 INICIO
-	EligeSalir = FALSO
+	EligeSalir = [F]
 	ESCRIBIR("Ingresar un numero:")
 	LEER(N)
 
@@ -92,7 +92,7 @@ INICIO
 						Divisor = 3
 						MIENTRAS (Divisor <= rc(Nu)) [Y] (EsPrimo) HACER
 							SI trunc(N) MOD Divisor == 0 ENTONCES
-								EsPrimo = FALSO
+								EsPrimo = [F]
 							SINO
 								Divisor = Divisor + 2
 							FINSI
@@ -104,7 +104,7 @@ INICIO
 				ESCRIBIR("Ingrese un numero:")
 				LEER(N)
 			0:
-				EligeSalir = VERDADERO
+				EligeSalir = [V]
 			DE OTRO MODO:
 				ESCRIBIR("Opcion no valida!")
 		FINSEGUN

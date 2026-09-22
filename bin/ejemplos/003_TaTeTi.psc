@@ -16,8 +16,8 @@ INICIO
 		FINVARIAR
 	FINVARIAR
 
-	Terminado = FALSO
-	HayGanador = FALSO
+	Terminado = [F]
+	HayGanador = [F]
 	CantTurnos = 0
 
 	MIENTRAS [NO] Terminado HACER
@@ -83,12 +83,12 @@ INICIO
 					aux_j = aux_j * Tab1[j, i]
 				FINVARIAR
 				SI (aux_i == Objetivo) [O] (aux_j == Objetivo) ENTONCES
-					HayGanador = VERDADERO
+					HayGanador = [V]
 				FINSI
 			FINVARIAR
 
 			SI (aux_d1 == Objetivo) [O] (aux_d2 == Objetivo) ENTONCES
-				HayGanador = VERDADERO
+				HayGanador = [V]
 			FINSI
 		SINO
 			SI HayGanador ENTONCES
@@ -100,7 +100,7 @@ INICIO
 			SINO
 				ESCRIBIR("Empate!")
 			FINSI
-			Terminado = VERDADERO
+			Terminado = [V]
 		FINSI
 	FINMIENTRAS
 FINPROGRAMA

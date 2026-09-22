@@ -68,10 +68,10 @@ INICIO
 				ESPERAR TECLA
 			SINO
 				disco_a_mover = torres[t1, cant_discos[t1]]
-				puede_mover = VERDADERO
+				puede_mover = [V]
 				SI cant_discos[t2] <> 0 ENTONCES
 					SI torres[t2, cant_discos[t2]] < disco_a_mover ENTONCES
-						puede_mover = FALSO
+						puede_mover = [F]
 					FINSI
 				FINSI
 

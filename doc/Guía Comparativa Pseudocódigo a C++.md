@@ -37,7 +37,7 @@ int main() {
 | **Número Real** | REAL | float |  |
 | **Carácter** | CAR | char |  |
 | **Cadena de texto** | CADENA | string | Requiere \#include \<string\> |
-| **Lógico / Booleano** | LOGICO | bool | VERDADERO (1 / true), FALSO (0 / false) |
+| **Lógico / Booleano** | LOGICO | bool | [V] (1 / true), [F] (0 / false) |
 
 ### **Variables, Constantes y Comentarios**
 
