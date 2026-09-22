@@ -29,13 +29,12 @@ mxOpersWindow::mxOpersWindow(wxWindow *parent):wxScrolledWindow(parent,wxID_ANY,
 	Add("^","^",_Z("potencia"),_Z("Ej: A^N (A elevado a la N-esima potencia)"));
 	Add("%","%",_Z("resto/modulo"),_Z("A%B (resto de dividir A por B)"));
 	AddCaterory(_Z("Op. Lógicos"));
-	Add("&","&&",_Z("conjunción"),_Z("Ej: X>5 Y X<20 (Verdadero solo si ambas son Verdadero)"));
-	Add("|","|",_Z("disyunción"),_Z("Ej: X=0 O Z=5 (Verdadero si al menos una de las dos es Verdadero)"));
-	Add("~","~",_Z("negación"),_Z("Ej: NO X=5 (Invierte el resultado de la expresión lógica)"));
+	Add("[Y]","[Y]",_Z("conjunción"),_Z("Ej: X>5 [Y] X<20 (Verdadero solo si ambas son Verdadero)"));
+	Add("[O]","[O]",_Z("disyunción"),_Z("Ej: X==0 [O] Z==5 (Verdadero si al menos una de las dos es Verdadero)"));
+	Add("[NO]","[NO]",_Z("negación"),_Z("Ej: [NO] (X==5) (Invierte el resultado de la expresión lógica)"));
 	AddCaterory(_Z("Op. Relacionales"));
-	Add("=","=",_Z("igual"),_Z("Ej: A=B"));
-//	Add("<>","<>",_Z("distinto"),_Z("Ej: A<>B"));
-	Add("!=","!=",_Z("distinto"),_Z("Ej: A!=B (equivalente a A<>B)"));
+	Add("==","==",_Z("igual"),_Z("Ej: A==B"));
+	Add("<>","<>",_Z("distinto"),_Z("Ej: A<>B"));
 	Add("<","<",_Z("menor"),_Z("Ej: A<B"));
 	Add("<=","<=",_Z("menor o igual"),_Z("Ej: A<=B"));
 	Add(">",">",_Z("mayor"),_Z("Ej: A>B"));
@@ -101,18 +100,8 @@ void mxOpersWindow::Replace(oper_item &o, wxString f1, wxString t1, wxString f2,
 void mxOpersWindow::AdjustToProfile ( ) {
 	if (cfg_lang[LS_WORD_OPERATORS]) {
 		for(unsigned int i=0;i<lista.size();i++) {  
-			Replace(lista[i],"&","Y"," & "," Y ",cfg_lang[LS_WORD_OPERATORS]);
-			Replace(lista[i],"|","O"," | "," O ",cfg_lang[LS_WORD_OPERATORS]);
-			Replace(lista[i],"~","NO","~ ","NO ",cfg_lang[LS_WORD_OPERATORS]);
 			Replace(lista[i],"%","MOD","%"," MOD ",cfg_lang[LS_WORD_OPERATORS]);
 		}
-	}
-	for(unsigned int i=0;i<lista.size();i++) {  
-		Replace(lista[i],"<=",_T("\u2264"),"<=",_T("\u2264"),config->unicode_opers);
-		Replace(lista[i],">=",_T("\u2265"),">=",_T("\u2265"),config->unicode_opers);
-		Replace(lista[i],"!=",_T("\u2260"),"!=",_T("\u2260"),config->unicode_opers);
-//		Replace(lista[i],"<>",_T("\u2260"),">=",_T("\u2260"),config->unicode_opers);
-		Replace(lista[i],"^",_T("\u2191"),"^",_T("\u2191"),config->unicode_opers);
 	}
 }
 

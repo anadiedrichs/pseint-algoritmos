@@ -22,7 +22,7 @@ Las siguientes tablas exhiben la totalidad de los operadores de este lenguaje re
 <td><center>&lt;</center></td><td>&nbsp; Menor que </td><td>&nbsp; 'ABC'&lt;'abc'
 </td></tr>
 <tr >
-<td><center>=</center></td><td>&nbsp; Igual que </td><td>&nbsp; 4=3
+<td><center>==</center></td><td>&nbsp; Igual que </td><td>&nbsp; 4==3
 </td></tr>
 <tr >
 <td><center>&lt;=</center></td><td>&nbsp; Menor o igual que </td><td>&nbsp; 'a'&lt;='b'
@@ -37,13 +37,13 @@ Las siguientes tablas exhiben la totalidad de los operadores de este lenguaje re
 <td><i>Lógicos</i> </td><td></td><td>
 </td></tr>
 <tr >
-<td><center>&amp; ó Y</center></td><td>&nbsp; Conjunción (y). </td><td>&nbsp; (7&gt;4) &amp; (2=1) //falso
+<td><center>[Y]</center></td><td>&nbsp; Conjunción (y). </td><td>&nbsp; (7&gt;4) [Y] (2==1) //falso
 </td></tr>
 <tr >
-<td><center>| ó O</center></td><td>&nbsp; Disyunción (o). </td><td>&nbsp; (1=1 | 2=1) //verdadero
+<td><center>[O]</center></td><td>&nbsp; Disyunción (o). </td><td>&nbsp; (1==1 [O] 2==1) //verdadero
 </td></tr>
 <tr >
-<td><center>~ ó NO</center></td><td>&nbsp; Negación (no). </td><td>&nbsp; ~(2&lt;5) //falso
+<td><center>[NO]</center></td><td>&nbsp; Negación (no). </td><td>&nbsp; [NO](2&lt;5) //falso
 </td></tr>
 <tr >
 <td><i>Algebraicos</i> </td><td></td><td>

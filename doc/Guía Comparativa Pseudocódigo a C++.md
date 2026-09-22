@@ -64,20 +64,20 @@ int main() {
 
 ### **Operadores Relacionales**
 
-* **Igual**: \= en Pseudocódigo -> \== en C++  
+* **Igual**: \=\= en Pseudocódigo -> \== en C++  
 * **Mayor**: \> (Ambos)  
 * **Menor**: \< (Ambos)  
 * **Mayor o Igual**: \>= (Ambos)  
 * **Menor o Igual**: \<= (Ambos)  
-* **Distinto**: \!= o \<\> en Pseudocódigo -> \!= en C++
+* **Distinto**: \<\> en Pseudocódigo -> \!= en C++
 
 ### **Operadores Lógicos**
 
 | Operación | Pseudocódigo | C++ |
 | :---- | :---- | :---- |
-| **Conjunción (Y)** | Y o \[Y\] | && |
-| **Disyunción (O)** | O o \[O\] | \` |
-| **Negación (NO)** | NO o \[NO\] | \! |
+| **Conjunción (Y)** | \[Y\] | && |
+| **Disyunción (O)** | \[O\] | || |
+| **Negación (NO)** | \[NO\] | \! |
 
 ## **4\. Entrada, Salida y Asignación**
 
