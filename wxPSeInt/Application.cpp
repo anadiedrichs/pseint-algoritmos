@@ -84,6 +84,8 @@ bool mxApplication::OnInit() {
 	if (!flag && !wxFileName::FileExists(_T("pseint.dir")) && !wxFileName::FileExists(_T("PSeInt.dir"))) {
 		_LOG("Error: pseint.dir not found");
 		wxMessageBox(_Z("PSeInt no pudo determinar el directorio donde fue instalado. Compruebe que el directorio de trabajo actual sea el correcto."),_T("Error"));
+	} else {
+		wxSetWorkingDirectory(zpath);
 	}
 	
 	srand(time(0));

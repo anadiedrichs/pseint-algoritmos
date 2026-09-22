@@ -52,7 +52,8 @@ bool RTSyntaxManager::Process (mxSource *src, Info *args) {
 		_LOG("RTSyntaxManager::Process ERROR: the_one->Process(NULL) && (!the_one || !the_one->processing): the_one="<<the_one);
 		return false; // no deberia pasar (solo si no puede lanzar el interprete o revienta enseguida)
 	}
-	if (!the_one) Start(); else if (the_one->processing || the_one->restart) return false;
+	if (!the_one) Start();
+	if (!the_one || the_one->pid <= 0 || the_one->processing || the_one->restart || !the_one->GetOutputStream()) return false;
 	_LOG("RTSyntaxManager::Process in src="<<src);
 	if (args) extra_args=*args; else extra_args.action=RTA_NULL;
 	the_one->src=src;
@@ -78,6 +79,7 @@ bool RTSyntaxManager::Process (mxSource *src, Info *args) {
 
 void RTSyntaxManager::ContinueProcessing() {
 	_LOG("RTSyntaxManager::ContinueProcessing in src="<<src);
+	if (!GetInputStream()) return;
 	wxTextInputStream input(*(GetInputStream()));	
 	if (!src) {
 		_LOG("RTSyntaxManager::ContinueProcessing out src="<<src);

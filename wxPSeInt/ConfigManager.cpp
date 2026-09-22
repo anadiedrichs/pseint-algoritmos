@@ -86,7 +86,7 @@ void ConfigManager::LoadDefaults() {
 	last_dir=wxFileName::GetHomeDir();
 	
 #if defined(_WIN32) || defined(__WIN32__)
-	std::string bin_pre="", bin_post=".exe";
+	std::string bin_pre=".\\", bin_post=".exe";
 #elif defined(__APPLE__)
 	std::string bin_pre="./", bin_post="";
 #else

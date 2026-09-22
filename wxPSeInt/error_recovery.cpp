@@ -38,6 +38,10 @@ void er_unregister_source(mxSource *src) {
 }
 
 void er_sigsev(int sig) {
+#ifndef DEBUG
+	signal(SIGSEGV,SIG_DFL);
+	signal(SIGPIPE,SIG_DFL);
+#endif
 	
 //	ofstream fil1((er_dir+"error_log").c_str(),ios::ate|ios::app);
 //	fil1<<endl;
@@ -73,7 +77,7 @@ void er_sigsev(int sig) {
 	_LOG("signal: "<<sig);
 	
 	if (main_window) {
-		wxMessageDialog	(main_window,_Z("Ha ocurrido un error grave y PSeInt se cerrará. Por,\n"
+		wxMessageDialog	(main_window,_Z("Ha ocurrido un error grave y PSeInt se cerrarÃ¡. Por,\n"
 									   "suerte se han podido guardar todos sus archivos para\n"
 									   "ser recuperados la proxima vez que inicie el entorno."),
 						_Z("OOOPS!!!"),wxOK|wxICON_ERROR).ShowModal();
