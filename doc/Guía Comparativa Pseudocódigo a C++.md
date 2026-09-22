@@ -59,6 +59,7 @@ int main() {
 * **Resta**: \- (Ambos)  
 * **Multiplicación**: \* (Ambos)  
 * **División**: / (Ambos)  
+* **Potencia (Exponenciación)**: \^ en Pseudocódigo (con o sin espacios, ej: `3 ^ 2` o `3^2`) -> pow(base, exp) en C++  
 * **Módulo (Resto)**: MOD o % en Pseudocódigo -> % en C++
 
 ### **Operadores Relacionales**
