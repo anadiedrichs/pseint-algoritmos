@@ -511,15 +511,9 @@ void mxMainWindow::CreateStatusBar() {
 mxSource *mxMainWindow::NewProgram(const wxString &title) {
 	mxSource *source = new mxSource(notebook,title);
 	notebook->AddPage(source,title,true);
-	if (cfg_lang[LS_PREFER_ALGORITMO]) {
-		source->SetText("Algoritmo sin_titulo\n\t\nFinAlgoritmo\n");
-		source->SetFieldIndicator(10,20);
-		source->SetSelection(22,22);
-	} else {
-		source->SetText("Proceso sin_titulo\n\t\nFinProceso\n");
-		source->SetFieldIndicator(8,18);
-		source->SetSelection(20,20);
-	}
+	source->SetText("PROGRAMA nombra_tu_programa\n\t\nFINPROGRAMA\n");
+	source->SetFieldIndicator(9,27);
+	source->SetSelection(29,29);
 	source->Analyze();
 	source->SetJustCreated();
 	status_bar->SetStatus(STATUS_NEW_SOURCE);
