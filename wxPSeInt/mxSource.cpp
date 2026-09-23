@@ -108,7 +108,10 @@ struct comp_list_item {
 	comp_list_item(){}
 	comp_list_item(wxString  _label, wxString _text, wxString _instruction):label(_label),text(_text),instruction(_instruction.Lower()){}
 	operator wxString() { return label; }
-	bool operator<(const comp_list_item &o) const { return label<o.label; }
+	bool operator<(const comp_list_item &o) const {
+		if (label != o.label) return label < o.label;
+		return instruction < o.instruction;
+	}
 };
 static vector<comp_list_item> comp_list;
 
@@ -526,8 +529,9 @@ void mxSource::MakeCompletionFromKeywords(wxArrayString &output, int start_pos, 
 		for (j=0;j<l;j++)
 			if (typed[j]!=wxTolower(comp_list[i].label[j]))
 				break;
-		if (j==l and (comp_list[i].label[3]!=' ' or comp_list[i].label[0]!='F')) {
-			output.Add(comp_list[i]);
+		if (j==l and (comp_list[i].label.Len() <= 3 or (comp_list[i].label[3]!=' ' or comp_list[i].label[0]!='F'))) {
+			if (output.Index(comp_list[i].label) == wxNOT_FOUND)
+				output.Add(comp_list[i].label);
 		}
 	}
 }
@@ -572,9 +576,9 @@ void mxSource::OnCharAdded (wxStyledTextEvent &event) {
 		wxArrayString res;
 		if (not STYLE_IS_CONSTANT(s)) {
 			int p1=comp_from=WordStartPosition(p2-1,true);
-			wxString st=GetTextRange(p1,p2).Lower(); st[0]=toupper(st[0]);
+			wxString st=GetTextRange(p1,p2).Upper();
 			for (size_t i=0;i<comp_list.size();i++) {
-				if (comp_list[i].label.StartsWith(st))
+				if (comp_list[i].label.Upper().StartsWith(st))
 					res.Add(comp_list[i]);
 				if (not res.IsEmpty()) {
 					ShowUserList(res,p1,p2);
@@ -599,14 +603,17 @@ void mxSource::OnCharAdded (wxStyledTextEvent &event) {
 				if (something_between and p>=pbeg) {
 					// saltear Y, O y NO, se colorean como palabras clave
 					wxString word = GetTextRange(WordStartPosition(p,true),p+1).Upper();
-					if (word=="Y" or word=="NO" or word=="O") { 
+					if (word=="Y" or word=="NO" or word=="O" or word=="[Y]" or word=="[O]" or word=="[NO]") { 
 						p-=word.Len(); continue; 
 					}
-					else if (word=="SI") res.Add("Entonces");
-					else if (word=="PARA") res.Add("Hasta");
-					else if (word=="HASTA") res.Add("Hacer");
-					else if (word=="MIENTRAS") res.Add("Hacer");
-					else if (word=="SEGUN") res.Add("Hacer");
+					else if (word=="SI") res.Add("ENTONCES");
+					else if (word=="VARIAR") res.Add("DE");
+					else if (word=="DE") res.Add("HASTA");
+					else if (word=="PARA") res.Add("HASTA");
+					else if (word=="HASTA") { res.Add("PASO"); res.Add("HACER"); }
+					else if (word=="PASO") res.Add("HACER");
+					else if (word=="MIENTRAS") res.Add("HACER");
+					else if (word=="SEGUN" or word==_Z("SEGÚN") or word=="CASO") res.Add("HACER");
 					comp_from = comp_to;
 					if (not res.IsEmpty()) ShowUserList(res,comp_from,comp_to);
 				}
@@ -787,7 +794,8 @@ void mxSource::OnUserListSelection(wxStyledTextEvent &evt) {
 		ReplaceTarget(text);
 		SetSelection(comp_from+text.Len(),comp_from+text.Len());
 		int lfp=LineFromPosition(comp_from);
-		if (text.Mid(0,3)=="Fin" || text=="Hasta Que " || text=="Mientras Que " || text.Mid(0,4)=="SiNo"||text.Last()=='\n')
+		wxString textUpper = text.Upper();
+		if (textUpper.StartsWith("FIN") || textUpper.StartsWith("HASTA QUE") || textUpper.StartsWith("MIENTRAS QUE") || textUpper.StartsWith("SINO") || text.Last()=='\n')
 			IndentLine(lfp);
 		if (text.Last()=='\n') {
 			StyleLine(lfp);
@@ -1190,6 +1198,13 @@ void mxSource::SetWords() {
 void mxSource::SetCalltips() {
 	calltips_functions.clear(); calltips_instructions.clear();
 	
+	calltips_instructions.push_back(calltip_text(_Z("PROGRAMA"),     _Z("{identificador del programa}")));
+	calltips_instructions.push_back(calltip_text(_Z("VARIAR"),       _Z("{variable} DE {inicio} HASTA {fin} [PASO {paso}]")));
+	calltips_instructions.push_back(calltip_text(_Z("PROCEDIMIENTO"),_Z("{identificador} ( [porRef] {parametro}: {tipo}, ... )")));
+	calltips_instructions.push_back(calltip_text(_Z("CONST"),        _Z("{identificador} [: {tipo}] = {valor}")));
+	calltips_instructions.push_back(calltip_text(_Z("VAR"),          _Z("{identificador} [: {tipo}]")));
+	calltips_instructions.push_back(calltip_text(_Z("TIPO"),         _Z("{identificador} = REGISTRO ... FINREGISTRO")));
+	calltips_instructions.push_back(calltip_text(_Z("REGISTRO"),     _Z("{declaracion de campos}")));
 	calltips_instructions.push_back(calltip_text(_Z("FUNCIÓN"),     _Z("{variable de retorno} <- {nombre} ( {lista de argumentos separados por coma} )\n{nombre} ( {lista de argumentos, separados por coma} )")));
 	calltips_instructions.push_back(calltip_text(_Z("FUNCION"),     _Z("{variable de retorno} <- {nombre} ( {lista de argumentos separados por coma} )\n{nombre} ( {lista de argumentos, separados por coma} )")));
 	calltips_instructions.push_back(calltip_text(_Z("SUBPROCESO"),  _Z("{variable de retorno} <- {nombre} ( {lista de argumentos separados por coma} )\n{nombre} ( {lista de argumentos, separados por coma} )")));
@@ -1253,156 +1268,141 @@ void mxSource::SetAutocompletion() {
 	// setear reglas para el autocompletado
 	comp_list.clear();
 	
-	comp_list.push_back(comp_list_item("Proceso","Proceso ",""));
-	comp_list.push_back(comp_list_item("Programa","Programa ",""));
-	comp_list.push_back(comp_list_item("FinPrograma","FinPrograma\n",""));
-	comp_list.push_back(comp_list_item("Inicio","Inicio\n",""));
-	comp_list.push_back(comp_list_item("Variar","Variar ",""));
-	comp_list.push_back(comp_list_item("FinVariar","FinVariar\n",""));
-	comp_list.push_back(comp_list_item("Paso","Paso ","Variar"));
-	comp_list.push_back(comp_list_item("Procedimiento","Procedimiento ",""));
-	comp_list.push_back(comp_list_item("FinProcedimiento","FinProcedimiento\n",""));
+	// Palabras clave de la catedra UTN-FRM-AyED (en MAYUSCULAS)
+	comp_list.push_back(comp_list_item("PROGRAMA","PROGRAMA ",""));
+	comp_list.push_back(comp_list_item("FINPROGRAMA","FINPROGRAMA\n",""));
+	comp_list.push_back(comp_list_item("INICIO","INICIO\n",""));
+	comp_list.push_back(comp_list_item("VAR","VAR ",""));
+	comp_list.push_back(comp_list_item("CONST","CONST ",""));
+	comp_list.push_back(comp_list_item("TIPO","TIPO ",""));
+	comp_list.push_back(comp_list_item("REGISTRO","REGISTRO\n","Tipo"));
+	comp_list.push_back(comp_list_item("REGISTRO","REGISTRO\n",""));
+	comp_list.push_back(comp_list_item("FINREGISTRO","FINREGISTRO\n",""));
+
+	comp_list.push_back(comp_list_item("VARIAR","VARIAR ",""));
+	comp_list.push_back(comp_list_item("FINVARIAR","FINVARIAR\n",""));
+	comp_list.push_back(comp_list_item("DE","DE ","Variar"));
+	comp_list.push_back(comp_list_item("HASTA","HASTA ","Variar"));
+	comp_list.push_back(comp_list_item("PASO","PASO ","Variar"));
+	comp_list.push_back(comp_list_item("HACER","HACER\n","Variar"));
+
+	comp_list.push_back(comp_list_item("PROCEDIMIENTO","PROCEDIMIENTO ",""));
+	comp_list.push_back(comp_list_item("FINPROCEDIMIENTO","FINPROCEDIMIENTO\n",""));
+	comp_list.push_back(comp_list_item("FUNCION","FUNCION ",""));
+	comp_list.push_back(comp_list_item("RETORNO","RETORNO\n",""));
 	comp_list.push_back(comp_list_item("porRef","porRef ",""));
-	comp_list.push_back(comp_list_item("Retorno","Retorno\n",""));
-	comp_list.push_back(comp_list_item("Const","Const ",""));
-	comp_list.push_back(comp_list_item("Tipo","Tipo ",""));
-	comp_list.push_back(comp_list_item("Registro","Registro\n","Tipo"));
-	comp_list.push_back(comp_list_item("FinRegistro","FinRegistro\n",""));
-	if (cfg_lang[LS_ENABLE_USER_FUNCTIONS]) {
-		comp_list.push_back(comp_list_item("Algoritmo","Algoritmo ",""));
-		comp_list.push_back(comp_list_item("Funcion","Funcion ",""));
-		comp_list.push_back(comp_list_item("SubAlgoritmo","SubAlgoritmo ",""));
-		comp_list.push_back(comp_list_item("SubProceso","SubProceso ",""));
-		comp_list.push_back(comp_list_item("Por Valor","Por Valor","SubAlgoritmo"));
-		comp_list.push_back(comp_list_item("Por Valor","Por Valor","SubProceso"));
-		comp_list.push_back(comp_list_item("Por Valor","Por Valor","Funcion"));
-		comp_list.push_back(comp_list_item("Por Referencia","Por Referencia","SubAlgoritmo"));
-		comp_list.push_back(comp_list_item("Por Referencia","Por Referencia","SubProceso"));
-		comp_list.push_back(comp_list_item("Por Referencia","Por Referencia","Funcion"));
-	}
-	comp_list.push_back(comp_list_item("FinProceso","FinProceso\n",""));
-	comp_list.push_back(comp_list_item("FinAlgoritmo","FinAlgoritmo\n",""));
-	if (cfg_lang[LS_LAZY_SYNTAX]) {
-		comp_list.push_back(comp_list_item("Fin Proceso","Fin Proceso\n",""));
-		comp_list.push_back(comp_list_item("Fin Algoritmo","Fin Algoritmo\n",""));
-	}
-	if (cfg_lang[LS_ENABLE_USER_FUNCTIONS]) {
-		comp_list.push_back(comp_list_item("FinSubProceso","FinSubProceso\n",""));
-		comp_list.push_back(comp_list_item("FinSubAlgoritmo","FinSubAlgoritmo\n",""));
-		comp_list.push_back(comp_list_item("FinFuncion","FinFuncion\n",""));
-		if (cfg_lang[LS_LAZY_SYNTAX]) {
-			comp_list.push_back(comp_list_item("Fin SubAlgoritmo","Fin SubAlgoritmo\n",""));
-			comp_list.push_back(comp_list_item("Fin Funcion","Fin Fincion\n",""));
-			comp_list.push_back(comp_list_item("Fin SubProceso","Fin SubProceso\n",""));
-		}
-	}
-	
-	comp_list.push_back(comp_list_item("Escribir","Escribir ",""));
-	if (cfg_lang[LS_LAZY_SYNTAX]) {
-		comp_list.push_back(comp_list_item("Imprimir","Imprimir ",""));
-		comp_list.push_back(comp_list_item("Mostrar","Mostrar ",""));
-	}
-	comp_list.push_back(comp_list_item("Sin Saltar","Sin Saltar","Escribir"));
-	comp_list.push_back(comp_list_item("Sin Saltar","Sin Saltar","Mostrar"));
-	comp_list.push_back(comp_list_item("Sin Saltar","Sin Saltar","Imprimir"));
-	comp_list.push_back(comp_list_item("Leer","Leer ",""));
-	
-	comp_list.push_back(comp_list_item("Esperar","Esperar ",""));
-	comp_list.push_back(comp_list_item("Segundos","Segundos;","Esperar"));
-	comp_list.push_back(comp_list_item("Milisegundos","Milisegundos;","Esperar"));
-	comp_list.push_back(comp_list_item("Tecla","Tecla;","Esperar"));
-	comp_list.push_back(comp_list_item("Esperar Tecla","Esperar Tecla;",""));
-	comp_list.push_back(comp_list_item("Borrar Pantalla","Borrar Pantalla;",""));
-	comp_list.push_back(comp_list_item("Limpiar Pantalla","Limpiar Pantalla;",""));
+	comp_list.push_back(comp_list_item("PORREF","PORREF ",""));
 
-	
-	comp_list.push_back(comp_list_item("Dimension","Dimension ",""));
-	comp_list.push_back(comp_list_item("Definir","Definir ",""));
-	comp_list.push_back(comp_list_item("Como Real","Como Real;","Definir"));
-	comp_list.push_back(comp_list_item("Como Caracter","Como Caracter;","Definir"));
-	comp_list.push_back(comp_list_item("Como Entero","Como Entero;","Definir"));
-	comp_list.push_back(comp_list_item("Como Logico","Como Logico;","Definir"));
-	
-	comp_list.push_back(comp_list_item("Entonces","Entonces\n",""));
-	comp_list.push_back(comp_list_item("Entonces","Entonces\n","Si"));
-	comp_list.push_back(comp_list_item("SiNo","SiNo\n",""));
-	comp_list.push_back(comp_list_item("FinSi","FinSi\n",""));
-	if (cfg_lang[LS_LAZY_SYNTAX]) comp_list.push_back(comp_list_item("Fin Si","Fin Si\n",""));
-	
-	comp_list.push_back(comp_list_item("Mientras","Mientras ",""));
-	comp_list.push_back(comp_list_item("Hacer","Hacer\n","Mientras"));
-	comp_list.push_back(comp_list_item("FinMientras","FinMientras\n",""));
-	if (cfg_lang[LS_LAZY_SYNTAX]) comp_list.push_back(comp_list_item("Fin Mientras","Fin Mientras\n",""));
-	
-	comp_list.push_back(comp_list_item("Para","Para ",""));
-	if (cfg_lang[LS_ALLOW_FOR_EACH])
-		comp_list.push_back(comp_list_item("Para Cada","Para Cada ",""));
-	if (cfg_lang[LS_LAZY_SYNTAX])
-		comp_list.push_back(comp_list_item("Desde","Desde ","Para"));
-	comp_list.push_back(comp_list_item("Hasta","Hasta ","Para"));
-	comp_list.push_back(comp_list_item("Con Paso","Con Paso ","Para"));
-	comp_list.push_back(comp_list_item("Hacer","Hacer\n","Para"));
-	if (cfg_lang[LS_ALLOW_FOR_EACH]) comp_list.push_back(comp_list_item("Cada ","Cada ","Para"));
-	comp_list.push_back(comp_list_item("FinPara","FinPara\n",""));
-	if (cfg_lang[LS_LAZY_SYNTAX]) comp_list.push_back(comp_list_item("Fin Para","Fin Para\n",""));
-	
-	comp_list.push_back(comp_list_item("Repetir","Repetir\n",""));
-	comp_list.push_back(comp_list_item("Hacer","Hacer\n",""));
-	comp_list.push_back(comp_list_item("Hasta Que","Hasta Que ",""));
-	if (cfg_lang[LS_ALLOW_REPEAT_WHILE]) comp_list.push_back(comp_list_item("Mientras Que","Mientras Que ",""));
-	
-	comp_list.push_back(comp_list_item("Segun","Segun ",""));
-	if (cfg_lang[LS_LAZY_SYNTAX]) {
-		comp_list.push_back(comp_list_item("Opcion","Opcion ",""));
-		comp_list.push_back(comp_list_item("Caso","Caso ",""));
-	}
-	comp_list.push_back(comp_list_item("De Otro Modo:","De Otro Modo:\n",""));
-	comp_list.push_back(comp_list_item("FinSegun","FinSegun\n",""));
-	if (cfg_lang[LS_LAZY_SYNTAX]) comp_list.push_back(comp_list_item("Fin Segun","Fin Segun\n",""));
+	comp_list.push_back(comp_list_item("ESCRIBIR","ESCRIBIR(",""));
+	comp_list.push_back(comp_list_item("LEER","LEER(",""));
 
-	comp_list.push_back(comp_list_item("Aleatorio","Aleatorio(","*"));
+	comp_list.push_back(comp_list_item("SI","SI ",""));
+	comp_list.push_back(comp_list_item("ENTONCES","ENTONCES\n",""));
+	comp_list.push_back(comp_list_item("ENTONCES","ENTONCES\n","Si"));
+	comp_list.push_back(comp_list_item("SINO","SINO\n",""));
+	comp_list.push_back(comp_list_item("FINSI","FINSI\n",""));
+
+	comp_list.push_back(comp_list_item("MIENTRAS","MIENTRAS ",""));
+	comp_list.push_back(comp_list_item("HACER","HACER\n","Mientras"));
+	comp_list.push_back(comp_list_item("FINMIENTRAS","FINMIENTRAS\n",""));
+
+	comp_list.push_back(comp_list_item("REPETIR","REPETIR\n",""));
+	comp_list.push_back(comp_list_item("HACER","HACER\n",""));
+	comp_list.push_back(comp_list_item("HASTA QUE","HASTA QUE ",""));
+	if (cfg_lang[LS_ALLOW_REPEAT_WHILE]) comp_list.push_back(comp_list_item("MIENTRAS QUE","MIENTRAS QUE ",""));
+
+	comp_list.push_back(comp_list_item("SEGUN CASO","SEGUN CASO ",""));
+	comp_list.push_back(comp_list_item("SEGUN","SEGUN CASO ",""));
+	comp_list.push_back(comp_list_item("SEGÚN","SEGÚN CASO ",""));
+	comp_list.push_back(comp_list_item("CASO","CASO ","Segun"));
+	comp_list.push_back(comp_list_item("DE OTRO MODO","DE OTRO MODO:\n",""));
+	comp_list.push_back(comp_list_item("FINSEGUN","FINSEGUN\n",""));
+
+	// Tipos de datos en catedra
+	comp_list.push_back(comp_list_item("ENTERO","ENTERO","*"));
+	comp_list.push_back(comp_list_item("REAL","REAL","*"));
+	comp_list.push_back(comp_list_item("CAR","CAR","*"));
+	comp_list.push_back(comp_list_item("CARACTER","CARACTER","*"));
+	comp_list.push_back(comp_list_item("CADENA","CADENA","*"));
+	comp_list.push_back(comp_list_item("LOGICO","LOGICO","*"));
+
+	// Constantes y operadores logicos
+	comp_list.push_back(comp_list_item("VERDADERO","VERDADERO","*"));
+	comp_list.push_back(comp_list_item("FALSO","FALSO","*"));
+	comp_list.push_back(comp_list_item("[V]","[V]","*"));
+	comp_list.push_back(comp_list_item("[F]","[F]","*"));
+	comp_list.push_back(comp_list_item("[Y]","[Y] ","*"));
+	comp_list.push_back(comp_list_item("[O]","[O] ","*"));
+	comp_list.push_back(comp_list_item("[NO]","[NO] ","*"));
+
+	// Compatibilidad con PSeInt estandar
+	comp_list.push_back(comp_list_item("PARA","PARA ",""));
+	if (cfg_lang[LS_ALLOW_FOR_EACH]) comp_list.push_back(comp_list_item("PARA CADA","PARA CADA ",""));
+	if (cfg_lang[LS_LAZY_SYNTAX]) comp_list.push_back(comp_list_item("DESDE","DESDE ","Para"));
+	comp_list.push_back(comp_list_item("HASTA","HASTA ","Para"));
+	comp_list.push_back(comp_list_item("CON PASO","CON PASO ","Para"));
+	comp_list.push_back(comp_list_item("HACER","HACER\n","Para"));
+	comp_list.push_back(comp_list_item("FINPARA","FINPARA\n",""));
+
+	comp_list.push_back(comp_list_item("PROCESO","PROCESO ",""));
+	comp_list.push_back(comp_list_item("FINPROCESO","FINPROCESO\n",""));
+	comp_list.push_back(comp_list_item("ALGORITMO","ALGORITMO ",""));
+	comp_list.push_back(comp_list_item("FINALGORITMO","FINALGORITMO\n",""));
+	if (cfg_lang[LS_ENABLE_USER_FUNCTIONS]) {
+		comp_list.push_back(comp_list_item("SUBALGORITMO","SUBALGORITMO ",""));
+		comp_list.push_back(comp_list_item("SUBPROCESO","SUBPROCESO ",""));
+		comp_list.push_back(comp_list_item("POR VALOR","POR VALOR","SubAlgoritmo"));
+		comp_list.push_back(comp_list_item("POR VALOR","POR VALOR","SubProceso"));
+		comp_list.push_back(comp_list_item("POR VALOR","POR VALOR","Funcion"));
+		comp_list.push_back(comp_list_item("POR REFERENCIA","POR REFERENCIA","SubAlgoritmo"));
+		comp_list.push_back(comp_list_item("POR REFERENCIA","POR REFERENCIA","SubProceso"));
+		comp_list.push_back(comp_list_item("POR REFERENCIA","POR REFERENCIA","Funcion"));
+		comp_list.push_back(comp_list_item("FINSUBPROCESO","FINSUBPROCESO\n",""));
+		comp_list.push_back(comp_list_item("FINSUBALGORITMO","FINSUBALGORITMO\n",""));
+		comp_list.push_back(comp_list_item("FINFUNCION","FINFUNCION\n",""));
+	}
+
+	comp_list.push_back(comp_list_item("DIMENSION","DIMENSION ",""));
+	comp_list.push_back(comp_list_item("DEFINIR","DEFINIR ",""));
+	comp_list.push_back(comp_list_item("COMO REAL","COMO REAL;","Definir"));
+	comp_list.push_back(comp_list_item("COMO CARACTER","COMO CARACTER;","Definir"));
+	comp_list.push_back(comp_list_item("COMO ENTERO","COMO ENTERO;","Definir"));
+	comp_list.push_back(comp_list_item("COMO LOGICO","COMO LOGICO;","Definir"));
+
+	comp_list.push_back(comp_list_item("ESPERAR","ESPERAR ",""));
+	comp_list.push_back(comp_list_item("SEGUNDOS","SEGUNDOS;","Esperar"));
+	comp_list.push_back(comp_list_item("MILISEGUNDOS","MILISEGUNDOS;","Esperar"));
+	comp_list.push_back(comp_list_item("TECLA","TECLA;","Esperar"));
+	comp_list.push_back(comp_list_item("ESPERAR TECLA","ESPERAR TECLA;",""));
+	comp_list.push_back(comp_list_item("BORRAR PANTALLA","BORRAR PANTALLA;",""));
+	comp_list.push_back(comp_list_item("LIMPIAR PANTALLA","LIMPIAR PANTALLA;",""));
+
+	comp_list.push_back(comp_list_item("ALEATORIO","ALEATORIO(","*"));
 	if (cfg_lang[LS_ENABLE_STRING_FUNCTIONS]) {
-		comp_list.push_back(comp_list_item("ConvertirATexto","ConvertirATexto(","*"));
-		comp_list.push_back(comp_list_item("ConvertirANumero","ConvertirANumero(","*"));
-		comp_list.push_back(comp_list_item("Concatenar","Concatenar(","*"));
-		comp_list.push_back(comp_list_item("Longitud","Longitud(","*"));
-		comp_list.push_back(comp_list_item("Mayusculas","Mayusculas(","*"));
-		comp_list.push_back(comp_list_item("Minusculas","Minusculas(","*"));
-		comp_list.push_back(comp_list_item("Subcadena","Subcadena(","*"));
+		comp_list.push_back(comp_list_item("CONVERTIRATEXTO","CONVERTIRATEXTO(","*"));
+		comp_list.push_back(comp_list_item("CONVERTIRANUMERO","CONVERTIRANUMERO(","*"));
+		comp_list.push_back(comp_list_item("CONCATENAR","CONCATENAR(","*"));
+		comp_list.push_back(comp_list_item("LONGITUD","LONGITUD(","*"));
+		comp_list.push_back(comp_list_item("MAYUSCULAS","MAYUSCULAS(","*"));
+		comp_list.push_back(comp_list_item("MINUSCULAS","MINUSCULAS(","*"));
+		comp_list.push_back(comp_list_item("SUBCADENA","SUBCADENA(","*"));
 	}
-	
-	comp_list.push_back(comp_list_item("Verdadero","Verdadero","*"));
-	comp_list.push_back(comp_list_item("Falso","Falso","*"));
-	comp_list.push_back(comp_list_item("Euler","Euler","*"));
-	
-	if (cfg_lang[LS_COLOQUIAL_CONDITIONS]) {
-		comp_list.push_back(comp_list_item("Es Cero","Es Cero","*"));
-		comp_list.push_back(comp_list_item("Es Distinto De","Es Distinto De ","*"));
-		comp_list.push_back(comp_list_item("Es Divisible Por","Es Divisible Por ","*"));
-		comp_list.push_back(comp_list_item("Es Entero","Es Entero","*"));
-		comp_list.push_back(comp_list_item("Es Igual A","Es Igual A ","*"));
-		comp_list.push_back(comp_list_item("Es Impar","Es Impar","*"));
-		comp_list.push_back(comp_list_item("Es Mayor O Igual A","Es Mayor O Igual A ","*"));
-		comp_list.push_back(comp_list_item("Es Mayor Que","Es Mayor Que ","*"));
-		comp_list.push_back(comp_list_item("Es Menor O Igual A","Es Menor O Igual A ","*"));
-		comp_list.push_back(comp_list_item("Es Menor Que","Es Menor Que ","*"));
-		comp_list.push_back(comp_list_item("Es Multiplo De","Es Multiplo De ","*"));
-		comp_list.push_back(comp_list_item("Es Negativo","Es Negativo","*"));
-		comp_list.push_back(comp_list_item("Es Par","Es Par","*"));
-		comp_list.push_back(comp_list_item("Es Positivo","Es Positivo","*"));
-		
-	}
+
+	comp_list.push_back(comp_list_item("EULER","EULER","*"));
+
+	// Lazy syntax variants if enabled
 	if (cfg_lang[LS_LAZY_SYNTAX]) {
-		comp_list.push_back(comp_list_item("Es Real","Es Real;","Es"));
-		comp_list.push_back(comp_list_item("Es Caracter","Es Caracter;","Es"));
-		if (!cfg_lang[LS_COLOQUIAL_CONDITIONS]) comp_list.push_back(comp_list_item("Es Entero","Es Entero;","Es"));
-		comp_list.push_back(comp_list_item("Es Logico","Es Logico;","Es"));
-		comp_list.push_back(comp_list_item("Son Reales","Son Reales;","Son"));
-		comp_list.push_back(comp_list_item("Son Caracteres","Son Caracteres;","Son"));
-		comp_list.push_back(comp_list_item("Son Enteros","Son Enteros;","Son"));
-		comp_list.push_back(comp_list_item("Son Logicos","Son Logicos;","Son"));
+		comp_list.push_back(comp_list_item("IMPRIMIR","IMPRIMIR ",""));
+		comp_list.push_back(comp_list_item("MOSTRAR","MOSTRAR ",""));
+		comp_list.push_back(comp_list_item("FIN PROCESO","FIN PROCESO\n",""));
+		comp_list.push_back(comp_list_item("FIN ALGORITMO","FIN ALGORITMO\n",""));
+		comp_list.push_back(comp_list_item("FIN SI","FIN SI\n",""));
+		comp_list.push_back(comp_list_item("FIN MIENTRAS","FIN MIENTRAS\n",""));
+		comp_list.push_back(comp_list_item("FIN PARA","FIN PARA\n",""));
+		comp_list.push_back(comp_list_item("FIN SEGUN","FIN SEGUN\n",""));
+		comp_list.push_back(comp_list_item("OPCION","OPCION ",""));
 	}
-	
+
 	sort(comp_list.begin(),comp_list.end());
 }
 
@@ -1749,63 +1749,62 @@ void mxSource::TryToAutoCloseSomething (int l) {
 	// agregar FinAlgo
 	if (btype==BT_PROCESO) {
 		if (sl2.StartsWith("FINPROCESO") || sl2.StartsWith("FIN PROCESO")) return;
-		InsertText(PositionFromLine(l+1),"FinProceso\n");
+		InsertText(PositionFromLine(l+1),"FINPROCESO\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_SUBPROCESO) {
 		if (sl2.StartsWith("FINSUBPROCESO") || sl2.StartsWith("FIN SUBPROCESO")) return;
-		InsertText(PositionFromLine(l+1),"FinSubProceso\n");
+		InsertText(PositionFromLine(l+1),"FINSUBPROCESO\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	}else if (btype==BT_ALGORITMO) {
 		if (sl2.StartsWith("FINALGORITMO") || sl2.StartsWith("FIN ALGORITMO")) return;
-		InsertText(PositionFromLine(l+1),"FinAlgoritmo\n");
+		InsertText(PositionFromLine(l+1),"FINALGORITMO\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_SUBALGORITMO) {
 		if (sl2.StartsWith("FINSUBALGORITMO") || sl2.StartsWith("FIN SUBALGORITMO")) return;
-		InsertText(PositionFromLine(l+1),"FinSubAlgoritmo\n");
+		InsertText(PositionFromLine(l+1),"FINSUBALGORITMO\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_FUNCION) {
-		if (sl2.StartsWith("FINFUNCION") || sl2.StartsWith("FIN FUNCION")) return;
-		InsertText(PositionFromLine(l+1),"FinFuncion\n");
+		if (sl2.StartsWith("FINFUNCION") || sl2.StartsWith("FIN FUNCION") || sl2.StartsWith("RETORNO")) return;
+		InsertText(PositionFromLine(l+1),"RETORNO\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_PARA) {
 		if (sl2.StartsWith("FINPARA") || sl2.StartsWith("FIN PARA")) return;
-		InsertText(PositionFromLine(l+1),"FinPara\n");
+		InsertText(PositionFromLine(l+1),"FINPARA\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_SI) {
 		if (sl2.StartsWith("FINSI") || sl2.StartsWith("FIN SI") || sl2.StartsWith("SINO")) return;
-		InsertText(PositionFromLine(l+1),"FinSi\n");
+		InsertText(PositionFromLine(l+1),"FINSI\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_REPETIR) {
 		if (sl2.StartsWith("HASTA QUE") || sl2.StartsWith("MIENTRAS QUE")) return;
-		InsertText(PositionFromLine(l+1),cfg_lang[LS_PREFER_REPEAT_WHILE]?"Mientras Que \n":"Hasta Que \n");
+		InsertText(PositionFromLine(l+1),cfg_lang[LS_PREFER_REPEAT_WHILE]?"MIENTRAS QUE \n":"HASTA QUE \n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_MIENTRAS) {
 		if (sl2.StartsWith("FINMIENTRAS") || sl2.StartsWith("FIN MIENTRAS")) return;
-		InsertText(PositionFromLine(l+1),"FinMientras\n");
+		InsertText(PositionFromLine(l+1),"FINMIENTRAS\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_SEGUN) {
 		if (sl2.StartsWith("FINSEG") || sl2.StartsWith("FIN SEG")) return;
-		InsertText(PositionFromLine(l+1),"FinSegun\n");
+		InsertText(PositionFromLine(l+1),"FINSEGUN\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_PROGRAMA) {
 		if (sl2.StartsWith("FINPROGRAMA") || sl2.StartsWith("FIN PROGRAMA")) return;
-		InsertText(PositionFromLine(l+1),"FinPrograma\n");
+		InsertText(PositionFromLine(l+1),"FINPROGRAMA\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_PROCEDIMIENTO) {
 		if (sl2.StartsWith("FINPROCEDIMIENTO") || sl2.StartsWith("FIN PROCEDIMIENTO")) return;
-		InsertText(PositionFromLine(l+1),"FinProcedimiento\n");
+		InsertText(PositionFromLine(l+1),"FINPROCEDIMIENTO\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_VARIAR) {
 		if (sl2.StartsWith("FINVARIAR") || sl2.StartsWith("FIN VARIAR")) return;
-		InsertText(PositionFromLine(l+1),"FinVariar\n");
+		InsertText(PositionFromLine(l+1),"FINVARIAR\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	} else if (btype==BT_REGISTRO) {
 		if (sl2.StartsWith("FINREGISTRO") || sl2.StartsWith("FIN REGISTRO")) return;
-		InsertText(PositionFromLine(l+1),"FinRegistro\n");
+		InsertText(PositionFromLine(l+1),"FINREGISTRO\n");
 		IndentLine(l+1,true); StyleLine(l+1);
 	}
 }
-
 
 void mxSource::OnToolTipTimeOut (wxStyledTextEvent &event) {
 //	if (current_calltip.is_dwell) HideCalltip(true);
@@ -2372,7 +2371,9 @@ static void FixExtraUnicode_impl(wxString &s, int i0, int iN) {
 		int iM = (i0+iN)/2;
 		FixExtraUnicode_impl(s,i0,iM);
 		FixExtraUnicode_impl(s,iM,iN); 
-			}}
+		
+	}
+}
 
 void mxSource::FixExtraUnicode(wxString &s) {
 	return FixExtraUnicode_impl(s,0,s.Len());
@@ -2540,7 +2541,8 @@ void mxSource::StyleLine(int line) {
 				else if (c==':' || c==';') word_count = 0;
 				while (p<pN and not (EsLetra(c,false) or EsNumero(c,true) or EsEspacio(c) or EsComilla(c) )) {
 					if (c=='/' and prev_c=='/') { --p; break; } // comentario
-					if (nesting==0 and word_count<=1 and (c==']' or c==')')) { ++p; break; } // asignación en arreglos					prev_c = c; c = text[++p];
+					if (nesting==0 and word_count<=1 and (c==']' or c==')')) { ++p; break; } // asignación en arreglos
+					prev_c = c; c = text[++p];
 					if (c=='(' or c=='[') ++nesting; 
 					else if (c==']' or c==')') --nesting;
 				}
@@ -2636,7 +2638,8 @@ void mxSource::ToUnicodeOpers (int line) {
 			} else
 				torep.push(std::make_tuple(vpos[i],vpos[i+1],UOP_AND));
 		}
-		else if (c=='|' and GetStyleAt(vpos[i])==wxSTC_C_OPERATOR) {			if (text[i+1]=='|') {
+		else if (c=='|' and GetStyleAt(vpos[i])==wxSTC_C_OPERATOR) {
+			if (text[i+1]=='|') {
 				torep.push(std::make_tuple(vpos[i],vpos[i+2],UOP_OR)); ++i;
 			} else
 				torep.push(std::make_tuple(vpos[i],vpos[i+1],UOP_OR));
