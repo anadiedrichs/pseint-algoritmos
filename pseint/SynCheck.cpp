@@ -1970,9 +1970,16 @@ static void AplicarSinonimosCatedra(string &cadena) {
 			if (cierre != -1) {
 				string resto = t.substr(cierre + 1);
 				while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
-				if (resto.empty() || resto == ";") {
+				string resto_upper = resto;
+				for (size_t ci = 0; ci < resto_upper.size(); ci++) resto_upper[ci] = toupper((unsigned char)resto_upper[ci]);
+				bool sin_saltar = false;
+				if (resto_upper.find("SIN SALTAR") != string::npos || resto_upper.find("SIN BAJAR") != string::npos ||
+				    resto_upper.find("SINSALTAR") != string::npos || resto_upper.find("SINBAJAR") != string::npos) {
+					sin_saltar = true;
+				}
+				if (resto.empty() || resto == ";" || sin_saltar) {
 					string args = t.substr(pos_par + 1, cierre - pos_par - 1);
-					cadena = kw + " " + args + ";";
+					cadena = kw + " " + args + (sin_saltar ? " SIN SALTAR;" : ";");
 					return;
 				}
 			}

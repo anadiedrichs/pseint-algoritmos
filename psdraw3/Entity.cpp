@@ -639,7 +639,12 @@ void Entity::Print(ostream &out, string tab, Entity *process, int &line_num) {
 		}
 	} else if (type==ET_ESCRIBIR) {
 		if (g_lang[LS_FORCE_SEMICOLON] && label[label.size()-1]==';') label=label.erase(label.size()-1);
-		out<<tab<<"Escribir "<<_fix(label,"{lista_de_expresiones}")<<(variante?" Sin Saltar":"")<<(g_lang[LS_FORCE_SEMICOLON]?";":"")<<_endl_this;
+		string fixed_lbl = _fix(label,"{lista_de_expresiones}");
+		if (fixed_lbl.size()>=2 && fixed_lbl[0]=='(' && fixed_lbl[fixed_lbl.size()-1]==')') {
+			out<<tab<<"ESCRIBIR"<<fixed_lbl<<(variante?" SIN SALTAR":"")<<(g_lang[LS_FORCE_SEMICOLON]?";":"")<<_endl_this;
+		} else {
+			out<<tab<<"ESCRIBIR("<<fixed_lbl<<")"<<(variante?" SIN SALTAR":"")<<(g_lang[LS_FORCE_SEMICOLON]?";":"")<<_endl_this;
+		}
 	} else if (type==ET_LEER) {
 		if (g_lang[LS_FORCE_SEMICOLON] && label[label.size()-1]==';') label=label.erase(label.size()-1);
 		out<<tab<<"Leer "<<_fix(label,"{lista_de_variables}")<<(g_lang[LS_FORCE_SEMICOLON]?";":"")<<_endl_this;

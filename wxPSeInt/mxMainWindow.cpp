@@ -981,7 +981,7 @@ void mxMainWindow::OnCmdEscribir(wxCommandEvent &evt) {
 		QuickHelp().ShowHelpText(help->GetCommandText("ESCRIBIR"));
 	wxArrayString toins;
 	wxString line = "ESCRIBIR({lista_de_expresiones})";
-	if (alternative) line<<" sin saltar";
+	if (alternative) line<<" SIN SALTAR";
 	if (cfg_lang[LS_FORCE_SEMICOLON]) line<<";";
 	toins.Add(line);
 	InsertCode(toins);
