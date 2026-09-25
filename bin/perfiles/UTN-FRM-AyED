@@ -18,5 +18,5 @@ use_nassi_shneiderman=0
 use_alternative_io_shapes=0
 allow_accents=1
 prefer_algoritmo=0
-prefer_funcion=0
+prefer_funcion=1
 prefer_repeat_while=0

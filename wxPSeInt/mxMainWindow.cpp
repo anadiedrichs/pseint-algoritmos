@@ -1030,10 +1030,11 @@ void mxMainWindow::OnCmdPara(wxCommandEvent &evt) {
 
 void mxMainWindow::OnCmdSubProceso(wxCommandEvent &evt) {
 	bool alternative = wxGetKeyState(WXK_SHIFT);
+	bool is_function = cfg_lang[LS_PREFER_FUNCION] ? !alternative : alternative;
 	if (config->auto_quickhelp) 
-		QuickHelp().ShowHelpText(help->GetCommandText((alternative || cfg_lang[LS_PREFER_FUNCION])?"FUNCION":"PROCEDIMIENTO"));
+		QuickHelp().ShowHelpText(help->GetCommandText(is_function ? "FUNCION" : "PROCEDIMIENTO"));
 	wxArrayString toins;
-	if (alternative || cfg_lang[LS_PREFER_FUNCION]) {
+	if (is_function) {
 		toins.Add("FUNCION {Nombre}({Argumentos}): {Tipo_Retorno}");
 		toins.Add("INICIO");
 		toins.Add("	{secuencia_de_acciones}");
@@ -1741,6 +1742,8 @@ void mxMainWindow::CreateButtonSubProceso(wxPanel *panel, wxSizer *sizer){
 	if (cfg_lang[LS_ENABLE_USER_FUNCTIONS]) {
 		wxString but_label = cfg_lang[LS_PREFER_FUNCION]?_Z("FUNCION"):(cfg_lang[LS_PREFER_ALGORITMO]?_Z("SUBALGORITMO"):_Z("PROCEDIMIENTO"));
 		button_subproc = utils->AddImgButton(sizer,panel,mxID_CMD_SUBPROCESO,DIR_PLUS_FILE_2("inst",config->big_icons?"52":"35","funcion.png"),but_label);
+		button_subproc->SetToolTip(utils->FixTooltip(_Z("Insertar FUNCION en el algoritmo (o mantener presionada la tecla Shift para insertar PROCEDIMIENTO).")));
+		button_subproc->SetMinSize(wxSize(button_subproc->GetMinSize().GetWidth(),10));
 	} else 
 		button_subproc = NULL;
 }
