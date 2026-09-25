@@ -18,7 +18,7 @@ Distribución oficial de **PSeInt** adaptada específicamente para la cátedra d
 
 ## 📚 Material de Cátedra
 
-* 📖 [**Guía Comparativa: Pseudocódigo PSeInt a C++**](guia-comparativa-c++.html): Documento de referencia con la equivalencia detallada entre las estructuras de control, tipos de datos y funciones de PSeInt hacia el lenguaje C++.
+* 📖 [**Guía Comparativa: Pseudocódigo PSeInt a C++**](https://github.com/anadiedrichs/pseint-algoritmos/blob/master/doc/Gu%C3%ADa%20Comparativa%20Pseudoc%C3%B3digo%20a%20C%2B%2B.md): Documento de referencia con la equivalencia detallada entre las estructuras de control, tipos de datos y funciones de PSeInt hacia el lenguaje C++.
 
 ---
 
