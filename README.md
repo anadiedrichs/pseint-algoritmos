@@ -9,6 +9,11 @@
 
 ---
 
+**About this project (English)**
+This repository contains a customized distribution of PSeInt (an educational pseudocode interpreter), tailored specifically for the "Algorithms and Data Structures" curriculum at the National Technological University (UTN-FRM) in Argentina. It provides engineering students with pre-configured development environments for Windows and Linux, curated examples, and specialized educational resources to facilitate the learning of fundamental programming logic and algorithms in Spanish. 
+
+---
+
 Distribución oficial de **PSeInt** adaptada específicamente para la cátedra de **Algoritmos y Estructuras de Datos (AyED)** de la **Universidad Tecnológica Nacional – Facultad Regional Mendoza (UTN FRM)**.
 
 ---
