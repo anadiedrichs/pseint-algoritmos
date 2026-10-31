@@ -1934,6 +1934,7 @@ static void PreprocesarSubprogramasCatedra(Programa &prog) {
 			string tipo_str = t.substr(p_dp + 1);
 			string cabecera = t.substr(0, p_dp);
 			
+
 			size_t p_sp = 0;
 			while (p_sp < cabecera.size() && cabecera[p_sp] != ' ' && cabecera[p_sp] != '\t' && cabecera[p_sp] != '(') p_sp++;
 			string resto_cab = cabecera.substr(p_sp);
@@ -1951,7 +1952,16 @@ static void PreprocesarSubprogramasCatedra(Programa &prog) {
 			}
 			while (!fname.empty() && (fname[fname.size()-1] == ' ' || fname[fname.size()-1] == '\t')) fname.erase(fname.size()-1);
 			NormalizarParametros(args_str);
-			string tipo_normalizado = NormalizarTipoCatedra(tipo_str);
+			string tipo_clean = tipo_str;
+			while (!tipo_clean.empty() && (tipo_clean[0] == ' ' || tipo_clean[0] == '\t')) tipo_clean.erase(0, 1);
+			while (!tipo_clean.empty() && (tipo_clean[tipo_clean.size()-1] == ';' || tipo_clean[tipo_clean.size()-1] == ' ' || tipo_clean[tipo_clean.size()-1] == '\t')) tipo_clean.erase(tipo_clean.size()-1);
+			string tipo_u = ToUpper(tipo_clean);
+			bool es_retorno_invalido = false;
+			if (g_registros.count(tipo_u) || tipo_clean.find('[') != string::npos) {
+				SynError(355, "Las funciones no pueden retornar registros ni arreglos. Debe utilizar un PROCEDIMIENTO con pasaje por referencia (porRef).", i, 1);
+				es_retorno_invalido = true;
+			}
+			string tipo_normalizado = es_retorno_invalido ? "ENTERO" : NormalizarTipoCatedra(tipo_str);
 			string ret_var = "_ret_" + fname;
 			
 			prog[i].instruccion = "SUBPROCESO " + ret_var + " <- " + fname + (args_str.empty() ? "" : (" " + args_str));
