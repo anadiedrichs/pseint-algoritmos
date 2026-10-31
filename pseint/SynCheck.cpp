@@ -1435,10 +1435,13 @@ static void PreprocesarRegistrosCatedra(Programa &prog) {
 		string indent = s.substr(0, p);
 		string t = s.substr(p);
 		
-		if (LeftCompareNC(t, "PROCEDIMIENTO ") || LeftCompareNC(t, "PROCEDIMIENTO\t") ||
-		    LeftCompareNC(t, "FUNCION ") || LeftCompareNC(t, "FUNCION\t") ||
-		    LeftCompare(t, "FUNCI\xDA ") || LeftCompare(t, "FUNCI\xDA\t") ||
-		    LeftCompare(t, "FUNCI\xC3\x9A ") || LeftCompare(t, "FUNCI\xC3\x9A\t")) {
+		if (LeftCompareNC(t, "PROCEDIMIENTO ") || LeftCompareNC(t, "PROCEDIMIENTO	") ||
+		    LeftCompareNC(t, "SUBPROCESO ") || LeftCompareNC(t, "SUBPROCESO	") ||
+		    LeftCompareNC(t, "SUBALGORITMO ") || LeftCompareNC(t, "SUBALGORITMO	") ||
+		    LeftCompareNC(t, "FUNCION ") || LeftCompareNC(t, "FUNCION	") ||
+		    LeftCompare(t, "FUNCI\xDA ") || LeftCompare(t, "FUNCI\xDA	") ||
+		    LeftCompare(t, "FUNCI\xC3\x9A ") || LeftCompare(t, "FUNCI\xC3\x9A	") ||
+		    LeftCompare(t, "función ") || LeftCompare(t, "función	")) {
 			size_t p_par = t.find('(');
 			size_t p_cl = t.rfind(')');
 			if (p_par != string::npos && p_cl != string::npos && p_cl > p_par) {
@@ -1458,38 +1461,82 @@ static void PreprocesarRegistrosCatedra(Programa &prog) {
 					if (p_col != string::npos) {
 						string aname = arg.substr(0, p_col);
 						string atipo = arg.substr(p_col + 1);
-						while (!aname.empty() && (aname[aname.size()-1] == ' ' || aname[aname.size()-1] == '\t')) aname.erase(aname.size()-1);
-						while (!atipo.empty() && (atipo[0] == ' ' || atipo[0] == '\t')) atipo.erase(0, 1);
-						while (!atipo.empty() && (atipo[atipo.size()-1] == ' ' || atipo[atipo.size()-1] == '\t')) atipo.erase(atipo.size()-1);
+						while (!aname.empty() && (aname[aname.size()-1] == ' ' || aname[aname.size()-1] == '	')) aname.erase(aname.size()-1);
+						while (!atipo.empty() && (atipo[0] == ' ' || atipo[0] == '	')) atipo.erase(0, 1);
+						while (!atipo.empty() && (atipo[atipo.size()-1] == ' ' || atipo[atipo.size()-1] == '	')) atipo.erase(atipo.size()-1);
 						
 						bool is_ref = false;
-						if (LeftCompareNC(aname, "PORREF ") || LeftCompareNC(aname, "PORREF\t")) {
+						if (LeftCompareNC(aname, "PORREF ") || LeftCompareNC(aname, "PORREF	")) {
 							is_ref = true;
 							aname = aname.substr(6);
-							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '\t')) aname.erase(0, 1);
-						} else if (LeftCompareNC(aname, "POR_REF ") || LeftCompareNC(aname, "POR_REF\t")) {
+							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '	')) aname.erase(0, 1);
+						} else if (LeftCompareNC(aname, "POR_REF ") || LeftCompareNC(aname, "POR_REF	")) {
 							is_ref = true;
 							aname = aname.substr(7);
-							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '\t')) aname.erase(0, 1);
+							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '	')) aname.erase(0, 1);
 						} else if (!aname.empty() && aname[0] == '&') {
 							is_ref = true;
 							aname.erase(0, 1);
-							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '\t')) aname.erase(0, 1);
+							while (!aname.empty() && (aname[0] == ' ' || aname[0] == '	')) aname.erase(0, 1);
+						}
+						
+						if (LeftCompareNC(atipo, "PORREF ") || LeftCompareNC(atipo, "PORREF	")) {
+							is_ref = true;
+							atipo = atipo.substr(6);
+							while (!atipo.empty() && (atipo[0] == ' ' || atipo[0] == '	')) atipo.erase(0, 1);
+						} else if (LeftCompareNC(atipo, "POR_REF ") || LeftCompareNC(atipo, "POR_REF	")) {
+							is_ref = true;
+							atipo = atipo.substr(7);
+							while (!atipo.empty() && (atipo[0] == ' ' || atipo[0] == '	')) atipo.erase(0, 1);
+						} else if (!atipo.empty() && atipo[0] == '&') {
+							is_ref = true;
+							atipo.erase(0, 1);
+							while (!atipo.empty() && (atipo[0] == ' ' || atipo[0] == '	')) atipo.erase(0, 1);
+						}
+						
+						bool is_arr = false;
+						string dim = "";
+						string vname = aname;
+						size_t p_b = aname.find('[');
+						if (p_b != string::npos) {
+							size_t p_bend = aname.rfind(']');
+							if (p_bend != string::npos && p_bend > p_b) {
+								is_arr = true;
+								dim = aname.substr(p_b + 1, p_bend - p_b - 1);
+								vname = aname.substr(0, p_b);
+								while (!vname.empty() && (vname[vname.size()-1] == ' ' || vname[vname.size()-1] == '	')) vname.erase(vname.size()-1);
+								while (!dim.empty() && (dim[0] == ' ' || dim[0] == '	')) dim.erase(0, 1);
+								while (!dim.empty() && (dim[dim.size()-1] == ' ' || dim[dim.size()-1] == '	')) dim.erase(dim.size()-1);
+							}
+						}
+						if (!is_arr) {
+							size_t p_tb = atipo.find('[');
+							if (p_tb != string::npos) {
+								size_t p_tbend = atipo.rfind(']');
+								if (p_tbend != string::npos && p_tbend > p_tb) {
+									is_arr = true;
+									dim = atipo.substr(p_tb + 1, p_tbend - p_tb - 1);
+									atipo = atipo.substr(0, p_tb);
+									while (!atipo.empty() && (atipo[atipo.size()-1] == ' ' || atipo[atipo.size()-1] == '	')) atipo.erase(atipo.size()-1);
+									while (!dim.empty() && (dim[0] == ' ' || dim[0] == '	')) dim.erase(0, 1);
+									while (!dim.empty() && (dim[dim.size()-1] == ' ' || dim[dim.size()-1] == '	')) dim.erase(dim.size()-1);
+								}
+							}
 						}
 						
 						string atipo_u = ToUpper(atipo);
 						if (g_registros.count(atipo_u)) {
 							TipoRegistro reg = g_registros[atipo_u];
 							InstanciaRegistro inst;
-							inst.var_name = aname;
+							inst.var_name = vname;
 							inst.tipo_registro = atipo_u;
-							inst.es_arreglo = false;
-							inst.dim_arreglo = "";
-							g_instancias_registro[ToUpper(aname)] = inst;
+							inst.es_arreglo = is_arr;
+							inst.dim_arreglo = dim;
+							g_instancias_registro[ToUpper(vname)] = inst;
 							
 							for (size_t c = 0; c < reg.campos.size(); c++) {
-								string pref = is_ref ? "porRef " : "";
-								new_args.push_back(pref + aname + "_" + reg.campos[c].nombre);
+								string pref = (is_ref || is_arr) ? "porRef " : "";
+								new_args.push_back(pref + vname + "_" + reg.campos[c].nombre);
 							}
 							continue;
 						}
@@ -1600,6 +1647,12 @@ static void PreprocesarRegistrosCatedra(Programa &prog) {
 		
 		// Expandir llamadas que pasen registros completos como argumentos
 		if (!LeftCompareNC(t, "SI ") && !LeftCompareNC(t, "MIENTRAS ") && !LeftCompareNC(t, "PROGRAMA ") && !LeftCompareNC(t, "SUBPROCESO ") &&
+		    !LeftCompareNC(t, "PROCEDIMIENTO ") && !LeftCompareNC(t, "PROCEDIMIENTO	") &&
+		    !LeftCompareNC(t, "SUBALGORITMO ") && !LeftCompareNC(t, "SUBALGORITMO	") &&
+		    !LeftCompareNC(t, "FUNCION ") && !LeftCompareNC(t, "FUNCION	") &&
+		    !LeftCompare(t, "FUNCI\xDA ") && !LeftCompare(t, "FUNCI\xDA	") &&
+		    !LeftCompare(t, "FUNCI\xC3\x9A ") && !LeftCompare(t, "FUNCI\xC3\x9A	") &&
+		    !LeftCompare(t, "función ") && !LeftCompare(t, "función	") &&
 		    !LeftCompareNC(t, "VARIAR ") && !LeftCompareNC(t, "PARA ") && !LeftCompareNC(t, "REPETIR ") && !LeftCompareNC(t, "HASTA ")) {
 			size_t p_op = t.find('(');
 			size_t p_cl = t.rfind(')');
@@ -1644,7 +1697,7 @@ static void PreprocesarRegistrosCatedra(Programa &prog) {
 							if (g_instancias_registro.count(v_u)) {
 								InstanciaRegistro &info = g_instancias_registro[v_u];
 								if (g_registros.count(info.tipo_registro)) {
-									if ((info.es_arreglo && !v_idx.empty()) || (!info.es_arreglo && v_idx.empty())) {
+									if (info.es_arreglo || v_idx.empty()) {
 										TipoRegistro &reg = g_registros[info.tipo_registro];
 										hubo_expansion = true;
 										for (size_t c = 0; c < reg.campos.size(); c++) {
