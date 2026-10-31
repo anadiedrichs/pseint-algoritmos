@@ -1246,6 +1246,165 @@ static string ReescribirAccesosRegistrosEnLinea(const string &s) {
 	return res;
 }
 
+
+static string ExpandirLlamadasConRegistrosEnLinea(const string &s) {
+	string res = "";
+	size_t i = 0;
+	size_t n = s.size();
+	while (i < n) {
+		char c = s[i];
+		if (c == '/' && i + 1 < n && s[i+1] == '/') {
+			res += s.substr(i);
+			break;
+		}
+		if (c == '"' || c == 39) {
+			char qch = c;
+			res += c;
+			i++;
+			while (i < n && s[i] != qch) {
+				res += s[i];
+				i++;
+			}
+			if (i < n) {
+				res += s[i];
+				i++;
+			}
+			continue;
+		}
+		
+		if (EsLetraId(c)) {
+			size_t start = i;
+			while (i < n && EsIdentChar(s[i])) i++;
+			string ident = s.substr(start, i - start);
+			
+			size_t k = i;
+			while (k < n && (s[k] == ' ' || s[k] == '	')) k++;
+			if (k < n && s[k] == '(') {
+				int depth = 1;
+				size_t p = k + 1;
+				bool in_str = false;
+				char qch = 0;
+				while (p < n && depth > 0) {
+					if (in_str) {
+						if (s[p] == qch) in_str = false;
+					} else {
+						if (s[p] == '"' || s[p] == 39) {
+							in_str = true;
+							qch = s[p];
+						} else if (s[p] == '(') {
+							depth++;
+						} else if (s[p] == ')') {
+							depth--;
+						}
+					}
+					if (depth > 0) p++;
+				}
+				
+				if (depth == 0) {
+					string inner = s.substr(k + 1, p - 1 - k);
+					string inner_exp = ExpandirLlamadasConRegistrosEnLinea(inner);
+					string ws_before_par = s.substr(i, k - i);
+					string id_u = ToUpper(ident);
+					if (id_u == "CASO" || id_u == "SEGUN" || id_u == "SEGÚ" || id_u == "SI" || id_u == "MIENTRAS" || id_u == "VARIAR" || id_u == "HASTA") {
+						res += ident + ws_before_par + "(" + inner_exp + ")";
+						i = p + 1;
+						continue;
+					}
+					
+					vector<string> args = SepararComasFueraDeComillas(inner_exp);
+					vector<string> exp_args;
+					bool hubo_expansion = false;
+					for (size_t a = 0; a < args.size(); a++) {
+						string arg = args[a];
+						while (!arg.empty() && (arg[0] == ' ' || arg[0] == '	')) arg.erase(0, 1);
+						while (!arg.empty() && (arg[arg.size()-1] == ' ' || arg[arg.size()-1] == '	')) arg.erase(arg.size()-1);
+						
+						if (arg.find('.') != string::npos) {
+							exp_args.push_back(arg);
+							continue;
+						}
+						
+						string prefix = "";
+						string v_name = arg;
+						if (LeftCompareNC(v_name, "PORREF ") || LeftCompareNC(v_name, "PORREF	")) {
+							prefix = v_name.substr(0, 6);
+							v_name = v_name.substr(6);
+							while (!v_name.empty() && (v_name[0] == ' ' || v_name[0] == '	')) v_name.erase(0, 1);
+						} else if (LeftCompareNC(v_name, "POR_REF ") || LeftCompareNC(v_name, "POR_REF	")) {
+							prefix = v_name.substr(0, 7);
+							v_name = v_name.substr(7);
+							while (!v_name.empty() && (v_name[0] == ' ' || v_name[0] == '	')) v_name.erase(0, 1);
+						} else if (!v_name.empty() && v_name[0] == '&') {
+							prefix = "&";
+							v_name.erase(0, 1);
+							while (!v_name.empty() && (v_name[0] == ' ' || v_name[0] == '	')) v_name.erase(0, 1);
+						}
+						
+						string v_idx = "";
+						if (!v_name.empty() && v_name[v_name.size()-1] == ']') {
+							size_t pb = v_name.find('[');
+							if (pb != string::npos) {
+								v_idx = v_name.substr(pb + 1, v_name.size() - 2 - pb);
+								v_name = v_name.substr(0, pb);
+								while (!v_name.empty() && (v_name[v_name.size()-1] == ' ' || v_name[v_name.size()-1] == '	')) v_name.erase(v_name.size()-1);
+							}
+						}
+						
+						bool v_name_ok = !v_name.empty() && EsLetraId(v_name[0]);
+						for (size_t vi = 1; vi < v_name.size(); vi++) {
+							if (!EsIdentChar(v_name[vi])) { v_name_ok = false; break; }
+						}
+						
+						if (v_name_ok) {
+							string v_u = ToUpper(v_name);
+							if (g_instancias_registro.count(v_u)) {
+								InstanciaRegistro &info = g_instancias_registro[v_u];
+								if (g_registros.count(info.tipo_registro)) {
+									if (info.es_arreglo || v_idx.empty()) {
+										TipoRegistro &reg = g_registros[info.tipo_registro];
+										hubo_expansion = true;
+										for (size_t c = 0; c < reg.campos.size(); c++) {
+											string pref = prefix.empty() ? "" : (prefix + " ");
+											if (!v_idx.empty()) {
+												exp_args.push_back(pref + v_name + "_" + reg.campos[c].nombre + "[" + v_idx + "]");
+											} else {
+												exp_args.push_back(pref + v_name + "_" + reg.campos[c].nombre);
+											}
+										}
+										continue;
+									}
+								}
+							}
+						}
+						exp_args.push_back(arg);
+					}
+					
+					string final_args = "";
+					if (hubo_expansion) {
+						for (size_t ea = 0; ea < exp_args.size(); ea++) {
+							if (ea > 0) final_args += ", ";
+							final_args += exp_args[ea];
+						}
+					}
+					if (hubo_expansion) {
+						res += ident + ws_before_par + "(" + final_args + ")";
+					} else {
+						res += ident + ws_before_par + "(" + inner_exp + ")";
+					}
+					i = p + 1;
+					continue;
+				}
+			}
+			res += ident;
+			continue;
+		}
+		
+		res += c;
+		i++;
+	}
+	return res;
+}
+
 static void PreprocesarRegistrosCatedra(Programa &prog) {
 	g_registros.clear();
 	g_instancias_registro.clear();
@@ -1645,88 +1804,17 @@ static void PreprocesarRegistrosCatedra(Programa &prog) {
 			}
 		}
 		
-		// Expandir llamadas que pasen registros completos como argumentos
-		if (!LeftCompareNC(t, "SI ") && !LeftCompareNC(t, "MIENTRAS ") && !LeftCompareNC(t, "PROGRAMA ") && !LeftCompareNC(t, "SUBPROCESO ") &&
-		    !LeftCompareNC(t, "PROCEDIMIENTO ") && !LeftCompareNC(t, "PROCEDIMIENTO	") &&
+		// Expandir llamadas que pasen registros completos como argumentos (en expresiones, condiciones y sentencias)
+		if (!LeftCompareNC(t, "PROCEDIMIENTO ") && !LeftCompareNC(t, "PROCEDIMIENTO	") &&
+		    !LeftCompareNC(t, "SUBPROCESO ") && !LeftCompareNC(t, "SUBPROCESO	") &&
 		    !LeftCompareNC(t, "SUBALGORITMO ") && !LeftCompareNC(t, "SUBALGORITMO	") &&
 		    !LeftCompareNC(t, "FUNCION ") && !LeftCompareNC(t, "FUNCION	") &&
 		    !LeftCompare(t, "FUNCI\xDA ") && !LeftCompare(t, "FUNCI\xDA	") &&
 		    !LeftCompare(t, "FUNCI\xC3\x9A ") && !LeftCompare(t, "FUNCI\xC3\x9A	") &&
-		    !LeftCompare(t, "función ") && !LeftCompare(t, "función	") &&
-		    !LeftCompareNC(t, "VARIAR ") && !LeftCompareNC(t, "PARA ") && !LeftCompareNC(t, "REPETIR ") && !LeftCompareNC(t, "HASTA ")) {
-			size_t p_op = t.find('(');
-			size_t p_cl = t.rfind(')');
-			if (p_op != string::npos && p_cl != string::npos && p_cl > p_op) {
-				string call_name = t.substr(0, p_op);
-				while (!call_name.empty() && (call_name[0] == ' ' || call_name[0] == '\t')) call_name.erase(0, 1);
-				while (!call_name.empty() && (call_name[call_name.size()-1] == ' ' || call_name[call_name.size()-1] == '\t')) call_name.erase(call_name.size()-1);
-				
-				if (!call_name.empty() && EsLetraId(call_name[0])) {
-					string args_str = t.substr(p_op + 1, p_cl - p_op - 1);
-					vector<string> args = SepararComasFueraDeComillas(args_str);
-					bool hubo_expansion = false;
-					vector<string> exp_args;
-					for (size_t a = 0; a < args.size(); a++) {
-						string arg = args[a];
-						while (!arg.empty() && (arg[0] == ' ' || arg[0] == '\t')) arg.erase(0, 1);
-						while (!arg.empty() && (arg[arg.size()-1] == ' ' || arg[arg.size()-1] == '\t')) arg.erase(arg.size()-1);
-						
-						// Si el argumento contiene un punto, es un acceso a campo (no un registro completo)
-						if (arg.find('.') != string::npos) {
-							exp_args.push_back(arg);
-							continue;
-						}
-						
-						string v_name = arg, v_idx = "";
-						if (!arg.empty() && arg[arg.size()-1] == ']') {
-							size_t pb = arg.find('[');
-							if (pb != string::npos) {
-								v_idx = arg.substr(pb + 1, arg.size() - 2 - pb);
-								v_name = arg.substr(0, pb);
-								while (!v_name.empty() && (v_name[v_name.size()-1] == ' ' || v_name[v_name.size()-1] == '\t')) v_name.erase(v_name.size()-1);
-							}
-						}
-						
-						bool v_name_ok = !v_name.empty() && EsLetraId(v_name[0]);
-						for (size_t vi = 1; vi < v_name.size(); vi++) {
-							if (!EsIdentChar(v_name[vi])) { v_name_ok = false; break; }
-						}
-						
-						if (v_name_ok) {
-							string v_u = ToUpper(v_name);
-							if (g_instancias_registro.count(v_u)) {
-								InstanciaRegistro &info = g_instancias_registro[v_u];
-								if (g_registros.count(info.tipo_registro)) {
-									if (info.es_arreglo || v_idx.empty()) {
-										TipoRegistro &reg = g_registros[info.tipo_registro];
-										hubo_expansion = true;
-										for (size_t c = 0; c < reg.campos.size(); c++) {
-											if (!v_idx.empty()) {
-												exp_args.push_back(v_name + "_" + reg.campos[c].nombre + "[" + v_idx + "]");
-											} else {
-												exp_args.push_back(v_name + "_" + reg.campos[c].nombre);
-											}
-										}
-										continue;
-									}
-								}
-							}
-						}
-						exp_args.push_back(arg);
-					}
-					if (hubo_expansion) {
-						string new_args = "";
-						for (size_t ea = 0; ea < exp_args.size(); ea++) {
-							if (ea > 0) new_args += ", ";
-							new_args += exp_args[ea];
-						}
-						t = call_name + "(" + new_args + ")" + t.substr(p_cl + 1);
-					}
-				}
-			}
+		    !LeftCompare(t, "función ") && !LeftCompare(t, "función	")) {
+			t = ExpandirLlamadasConRegistrosEnLinea(t);
 		}
 		
-		// Reemplazar accesos a campos con punto (.): v.campo y arr[i].campo
 		string t_sub = ReescribirAccesosRegistrosEnLinea(t);
 		prog[i].instruccion = indent + t_sub;
 	}
@@ -2226,7 +2314,7 @@ static void AplicarSinonimosCatedra(string &cadena) {
 		if (es_segun) {
 			string resto = t_sin_pyc.substr(offset_segun);
 			while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
-			if (LeftCompare(resto, "CASO ") || LeftCompare(resto, "CASO\t")) {
+			if (LeftCompare(resto, "CASO ") || LeftCompare(resto, "CASO\t") || LeftCompare(resto, "CASO(")) {
 				resto = resto.substr(4);
 				while (!resto.empty() && (resto[0] == ' ' || resto[0] == '\t')) resto.erase(0, 1);
 			}
