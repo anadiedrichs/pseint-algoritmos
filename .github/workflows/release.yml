@@ -79,16 +79,16 @@ jobs:
       - name: Configurar MSYS2 y dependencias
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
             make
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-wxwidgets3.2
-            mingw-w64-x86_64-make
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-wxwidgets
+            mingw-w64-ucrt-x86_64-make
             zip
 
-      - name: Compilar PSeInt con MSYS2 MinGW64
+      - name: Compilar PSeInt con MSYS2 UCRT64
         run: |
           mkdir -p bin temp
           if command -v mingw32-make &>/dev/null; then
@@ -112,17 +112,17 @@ jobs:
           echo '@start "" "%~dp0wxPSeInt.exe" %*' > dist/pseint-windows/Iniciar_PSeInt.bat
 
           # Copiar DLLs requeridas por los ejecutables
-          ldd dist/pseint-windows/*.exe 2>/dev/null | grep -i '/mingw64/bin/' | awk '{print $3}' | sort -u | while read dll; do
+          ldd dist/pseint-windows/*.exe 2>/dev/null | grep -i '/ucrt64/bin/' | awk '{print $3}' | sort -u | while read dll; do
             if [ -f "$dll" ]; then
               cp "$dll" dist/pseint-windows/
             fi
           done
 
           # Asegurar DLLs de runtime
-          cp /mingw64/bin/libwx*.dll dist/pseint-windows/ 2>/dev/null || true
-          cp /mingw64/bin/libstdc++-6.dll dist/pseint-windows/ 2>/dev/null || true
-          cp /mingw64/bin/libgcc_s_seh-1.dll dist/pseint-windows/ 2>/dev/null || true
-          cp /mingw64/bin/libwinpthread-1.dll dist/pseint-windows/ 2>/dev/null || true
+          cp /ucrt64/bin/libwx*.dll dist/pseint-windows/ 2>/dev/null || true
+          cp /ucrt64/bin/libstdc++-6.dll dist/pseint-windows/ 2>/dev/null || true
+          cp /ucrt64/bin/libgcc_s_seh-1.dll dist/pseint-windows/ 2>/dev/null || true
+          cp /ucrt64/bin/libwinpthread-1.dll dist/pseint-windows/ 2>/dev/null || true
 
           echo "=== Contenido de ejecutables en el paquete Windows ==="
           ls -la dist/pseint-windows/*.exe
